@@ -1,5 +1,5 @@
 /* Calorie Deficit Tracker — service worker */
-const CACHE = 'cdt-cache-v5';
+const CACHE = 'cdt-cache-v6';
 const ASSETS = [
   './',
   './index.html',
