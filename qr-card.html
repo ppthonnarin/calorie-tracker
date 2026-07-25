@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR — Calorie Deficit Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",sans-serif;background:#0f1115;color:#e8eaed;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:#1a1d24;border:1px solid #2c313b;border-radius:28px;padding:36px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .icon{width:76px;height:76px;border-radius:20px;margin:0 auto 16px;display:block}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .sub{color:#9aa0aa;font-size:13px;margin-top:6px}
+  .qrbox{background:#fff;border-radius:20px;padding:18px;margin:22px auto 18px;width:260px;height:260px;display:flex;align-items:center;justify-content:center}
+  .qrbox img{width:100%;height:100%;image-rendering:pixelated}
+  .scan{font-size:16px;font-weight:700;color:#4ade80}
+  .steps{text-align:left;background:#22262f;border-radius:14px;padding:14px 16px;margin-top:16px;font-size:13px;line-height:1.7;color:#c8ccd2}
+  .url{margin-top:16px;font-size:12px;color:#60a5fa;word-break:break-all}
+  @media print{body{background:#fff}.card{border:none;box-shadow:none;color:#111}.steps{background:#f2f3f5;color:#333}.sub{color:#555}h1{color:#111}}
+</style></head><body>
+  <div class="card">
+    <img class="icon" src="data:image/png;base64,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" alt="">
+    <h1>🔥 Calorie Deficit Tracker</h1>
+    <div class="sub">ติดตามแคลอรี่ขาดดุล · โปรตีน/คาร์บ/ไขมัน</div>
+    <div class="qrbox"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkwAAAJMAQMAAAAyqmuAAAAABlBMVEUPERX///9uyDSXAAADKElEQVR42u2dW2rDQAxFRTfg/e9ydjClsS1dyUMpjPIRekworh2fj8BFV48Z2+w6hoECBQoUKFCgQIECBQoUqI9DmR/Hz/l1/fXXL55Hun4/8rr4ZW0HKFD/B3Vr8Jh+4h/X2s/J6+PyvL6gz6JBUKD2NHjFu1N6t+JUiacAz0cunfojaBAUqD4NLr4gpjTsKxoEBepNGnwJzePdFRPvi8m1okFQoN6TD152dE7PAUOb91/yQVCgOjXoxzH/+pFH0CAoUJsaLA0Lr8C4KdVbGjflFj87KFB7GhxZXLlFqC7U88S4jgZBgerwopfohpzP+XsDES8KClRPHPTOuw/JaBAsGlS1HnhRUKA64qA4zDCZnhLmtmDkhnd7Ag2CArXvRVM1Jg+Fpgg4UquC3gQoUO35YJwci77hGfiSI8WLggLVEgd1GFszQQtT6mmgznITB0GBaqjJlERPli/dErMQo1RH8aKgQLXVZCQZfIbIYj6jSkMcBAWq0YvmOozOpGnzIvJB+oOgQDV6UasjMfGvJXe6mJ9Bg6BA7cdB7VDIEt3l8nmTxfXURUGB6vKi7jPDl2YNlmJpJIloEBSofS+q9c8jDc+UJUux0RNzMqBAteaDsSpQxBXJ4Igri03e0CAoUDteNPf77Nmz0OXzIyOIg6BAdcTBhfrmYlM1yy0J8kFQoBrj4LNFWMqkzyka1tGDAtWjQbM6fqZ10VVNpqysR4OgQG3GwdSsL7tqWxrYrrsaEgdBgWrKB8vI6GLJ0mqWGw2CAtWiQSsLlOYsXcJUILW8Hz4aBAVq34sOSxPa2hA8Fh38tMcaGgQFqsOL1h0L9bUvxXwuth7lZwcFaisOltdMxN3x2N+JeVFQoN5Uk1nNxtQpGstDa/QmQIFqiYN+HHlPe/GitVF4TOIgKFCdNZk5yyYVxZSWsKjL6tEgKFAN+aDV9/AmJRZfasmsokFQoBo1mBypqC/tRPq8hQZBgeqKg3PWHDDv+LRo36NBUKBa88E0m11ei6ZvoGA/GVCgujToR37JYHkvdllRqAQ0CArUjgYbjgEKFChQoECBAgUKFChQoD4I9Q1g2H0J4kyQiwAAAABJRU5ErkJggg==" alt="QR code"></div>
+    <div class="scan">📱 สแกนเพื่อเปิดแอปบนมือถือ</div>
+    <div class="steps">
+      1. เปิดกล้องมือถือ แล้วส่องที่ QR<br>
+      2. แตะลิงก์ที่ขึ้นมาเพื่อเปิดแอป<br>
+      3. <b>iPhone:</b> ปุ่มแชร์ ▵ → "เพิ่มไปยังหน้าจอโฮม"<br>
+      &nbsp;&nbsp;&nbsp;<b>Android:</b> เมนู ⋮ → "ติดตั้งแอป"
+    </div>
+    <div class="url">https://ppthonnarin.github.io/calorie-tracker/</div>
+  </div>
+</body></html>
