@@ -156,7 +156,7 @@
                oninput="onSearch()" onfocus="onSearch()">
         <div class="results" id="results" style="display:none"></div>
       </div>
-      <div class="hint">พิมพ์ชื่ออาหารเพื่อค้นจากฐานข้อมูล หรือ <a href="#" onclick="openManual();return false" style="color:var(--accent)">เพิ่มเอง</a></div>
+      <div class="hint">พิมพ์ชื่ออาหารเพื่อค้นจากฐานข้อมูล หรือ <a href="#" onclick="openManual();return false" style="color:var(--accent)">เพิ่มเอง</a> · ค่าอ้างอิงกรมอนามัย/แหล่งไทย (โดยประมาณ ±10-30%) ปรับได้ที่ "เมนูของฉัน"</div>
       <div id="manualBox" style="display:none; margin-top:10px">
         <div class="add-row" style="margin-bottom:8px">
           <input id="mName" placeholder="ชื่ออาหาร" style="flex:2">
@@ -283,6 +283,25 @@
       </div>
     </div>
     <div class="card">
+      <h2><span class="em">🍜</span> เมนูของฉัน</h2>
+      <div class="hint" style="margin:0 0 12px">เพิ่ม/แก้เมนูเอง (เช่น ปรับให้ตรงร้านที่กินประจำ) จะขึ้นบนสุดในช่องค้นหา พร้อม ⭐</div>
+      <div class="add-row" style="margin-bottom:8px">
+        <input id="cfName" placeholder="ชื่อเมนู" style="flex:2">
+        <input id="cfK" type="number" inputmode="numeric" placeholder="kcal" style="flex:1">
+      </div>
+      <div class="add-row" style="margin-bottom:8px">
+        <input id="cfP" type="number" inputmode="decimal" placeholder="P (g)">
+        <input id="cfC" type="number" inputmode="decimal" placeholder="C (g)">
+        <input id="cfF" type="number" inputmode="decimal" placeholder="F (g)">
+      </div>
+      <div class="add-row">
+        <select id="cfCat" style="flex:2"></select>
+        <button class="btn" id="cfBtn" onclick="saveCustom()" style="flex:1">บันทึก</button>
+      </div>
+      <div class="list" id="customList"></div>
+    </div>
+
+    <div class="card">
       <h2><span class="em">⚙️</span> ข้อมูล & แอป</h2>
       <button class="btn ghost sm" id="installBtn" onclick="doInstall()" style="display:none; margin-bottom:8px">📲 ติดตั้งแอปลงเครื่อง</button>
       <button class="btn ghost sm" onclick="exportData()" style="margin-bottom:8px">📤 ส่งออกข้อมูล (backup)</button>
@@ -310,17 +329,17 @@ const FOODS=[
   ["ข้าวสวย 1 จาน",240,4.5,53,0.5,"ข้าว/เส้น"],
   ["ข้าวเหนียว 1 ปั้น",170,3.5,37,0.3,"ข้าว/เส้น"],
   ["ข้าวมันไก่",595,28,68,22,"ข้าว/เส้น"],
-  ["ข้าวขาหมู",680,30,72,30,"ข้าว/เส้น"],
-  ["ข้าวหมูแดง",520,24,66,17,"ข้าว/เส้น"],
+  ["ข้าวขาหมู",640,30,68,28,"ข้าว/เส้น"],
+  ["ข้าวหมูแดง",540,24,66,18,"ข้าว/เส้น"],
   ["ข้าวผัด",520,15,62,22,"ข้าว/เส้น"],
-  ["ข้าวผัดกะเพราไก่ไข่ดาว",640,30,60,30,"ข้าว/เส้น"],
+  ["ข้าวผัดกะเพราไก่ไข่ดาว",590,28,58,26,"ข้าว/เส้น"],
   ["ข้าวหมูกระเทียม",560,26,60,24,"ข้าว/เส้น"],
-  ["ข้าวไข่เจียว",480,14,55,22,"ข้าว/เส้น"],
+  ["ข้าวไข่เจียว",445,13,55,18,"ข้าว/เส้น"],
   ["ผัดไทย",550,18,70,20,"ข้าว/เส้น"],
-  ["ก๋วยเตี๋ยวน้ำหมู",380,20,45,12,"ข้าว/เส้น"],
-  ["ก๋วยเตี๋ยวต้มยำ",420,22,48,15,"ข้าว/เส้น"],
-  ["เย็นตาโฟ",400,18,50,13,"ข้าว/เส้น"],
-  ["บะหมี่หมูแดง",450,24,52,15,"ข้าว/เส้น"],
+  ["ก๋วยเตี๋ยวน้ำหมู",300,18,40,8,"ข้าว/เส้น"],
+  ["ก๋วยเตี๋ยวต้มยำ",350,20,45,10,"ข้าว/เส้น"],
+  ["เย็นตาโฟ",250,16,40,5,"ข้าว/เส้น"],
+  ["บะหมี่หมูแดง",320,20,45,9,"ข้าว/เส้น"],
   ["สปาเกตตีคาร์โบนารา",650,22,70,30,"ข้าว/เส้น"],
   // กับข้าว/โปรตีน
   ["อกไก่ต้ม 100g",165,31,0,3.6,"โปรตีน"],
@@ -336,14 +355,14 @@ const FOODS=[
   ["เต้าหู้ไข่ 100g",80,7,3,5,"โปรตีน"],
   ["ลูกชิ้นปิ้ง 5 ลูก",120,8,10,5,"โปรตีน"],
   // ต้ม/ผัด/แกง
-  ["ต้มยำกุ้ง 1 ถ้วย",130,15,8,5,"กับข้าว"],
+  ["ต้มยำกุ้ง 1 ถ้วย",100,14,6,3,"กับข้าว"],
   ["แกงเขียวหวานไก่ 1 ถ้วย",240,15,10,16,"กับข้าว"],
   ["ผัดผักรวม 1 จาน",120,4,12,7,"กับข้าว"],
   ["ผัดกะเพราหมู 1 จาน",300,20,10,20,"กับข้าว"],
   ["ไข่พะโล้ 1 ถ้วย",280,16,12,18,"กับข้าว"],
-  ["ส้มตำไทย 1 จาน",180,5,28,5,"กับข้าว"],
-  ["ลาบหมู 1 จาน",230,20,8,13,"กับข้าว"],
-  ["น้ำตกหมู 1 จาน",250,22,8,14,"กับข้าว"],
+  ["ส้มตำไทย 1 จาน",120,4,24,3,"กับข้าว"],
+  ["ลาบหมู 1 จาน",180,20,6,9,"กับข้าว"],
+  ["น้ำตกหมู 1 จาน",200,22,6,10,"กับข้าว"],
   ["ยำวุ้นเส้น 1 จาน",260,14,30,9,"กับข้าว"],
   ["สลัดอกไก่ 1 จาน",300,28,15,14,"กับข้าว"],
   // ผลไม้
@@ -366,7 +385,7 @@ const FOODS=[
   ["ขนมปังปิ้ง 1 แผ่น",90,3,15,2,"ขนม"],
   ["โดนัท 1 ชิ้น",250,3,30,13,"ขนม"],
   ["เค้ก 1 ชิ้น",350,4,45,17,"ขนม"],
-  ["ข้าวเหนียวมะม่วง",380,6,68,10,"ขนม"],
+  ["ข้าวเหนียวมะม่วง",330,5,62,8,"ขนม"],
   ["มันฝรั่งทอด 1 ถุงเล็ก",150,2,15,10,"ขนม"],
   ["ไอศกรีม 1 สกู๊ป",140,2,18,7,"ขนม"],
   ["เวเฟอร์ 1 ซอง",120,1,17,5,"ขนม"],
@@ -374,14 +393,14 @@ const FOODS=[
   ["ป๊อปคอร์น 1 ถ้วย",90,2,12,4,"ขนม"],
   ["ถั่วอบ 1 กำมือ",170,6,6,14,"ขนม"],
   // เพิ่มเติม ข้าว/เส้น
-  ["ข้าวคลุกกะปิ",480,14,60,20,"ข้าว/เส้น"],
-  ["ข้าวหน้าเป็ด",560,26,68,20,"ข้าว/เส้น"],
+  ["ข้าวคลุกกะปิ",430,13,58,15,"ข้าว/เส้น"],
+  ["ข้าวหน้าเป็ด",480,24,64,15,"ข้าว/เส้น"],
   ["ข้าวต้มหมู 1 ถ้วย",250,14,35,6,"ข้าว/เส้น"],
-  ["โจ๊กหมูไข่ 1 ถ้วย",280,15,38,8,"ข้าว/เส้น"],
-  ["ข้าวซอยไก่",600,22,60,30,"ข้าว/เส้น"],
-  ["ผัดซีอิ๊วหมู",560,18,66,24,"ข้าว/เส้น"],
-  ["ราดหน้าหมู",520,18,62,22,"ข้าว/เส้น"],
-  ["ก๋วยเตี๋ยวเรือ",430,20,46,17,"ข้าว/เส้น"],
+  ["โจ๊กหมูไข่ 1 ถ้วย",260,14,36,7,"ข้าว/เส้น"],
+  ["ข้าวซอยไก่",520,22,56,24,"ข้าว/เส้น"],
+  ["ผัดซีอิ๊วหมู",620,18,70,26,"ข้าว/เส้น"],
+  ["ราดหน้าหมู",480,18,60,18,"ข้าว/เส้น"],
+  ["ก๋วยเตี๋ยวเรือ",380,18,44,12,"ข้าว/เส้น"],
   ["สุกี้น้ำรวมมิตร",320,26,28,12,"ข้าว/เส้น"],
   ["ข้าวเปล่า + ไก่ทอด",500,26,60,18,"ข้าว/เส้น"],
   // เพิ่มเติม โปรตีน
@@ -445,10 +464,10 @@ function load(){
     let old=JSON.parse(localStorage.getItem('cdt_v1'));
     if(old) return migrate(old);
   }catch(e){}
-  return {profile:null, days:{}, weights:[]};
+  return {profile:null, days:{}, weights:[], customFoods:[]};
 }
 function migrate(d){
-  d.profile=d.profile||null; d.days=d.days||{}; d.weights=d.weights||[];
+  d.profile=d.profile||null; d.days=d.days||{}; d.weights=d.weights||[]; d.customFoods=d.customFoods||[];
   for(const k in d.days){ const dd=d.days[k]; dd.foods=(dd.foods||[]).map(f=>({name:f.name,k:f.k,p:f.p||0,c:f.c||0,f:f.f||0})); dd.ex=dd.ex||[]; dd.water=dd.water||0; }
   return d;
 }
@@ -549,28 +568,35 @@ function shiftDay(n){
   cur=ns; hideResults(); renderToday();
 }
 
-/* ---- food search ---- */
+/* ---- food search (รวมเมนูของฉัน + ฐานข้อมูล) ---- */
 let searchCat='ทั้งหมด';
+let SR=[]; // ผลค้นหาปัจจุบัน
+function allFoods(){
+  return [
+    ...(DB.customFoods||[]).map(c=>({name:c.name,k:c.k,p:c.p||0,c:c.c||0,f:c.f||0,cat:c.cat||'อื่นๆ',custom:true})),
+    ...FOODS.map(a=>({name:a[0],k:a[1],p:a[2],c:a[3],f:a[4],cat:a[5],custom:false}))
+  ];
+}
 function onSearch(){
   const q=$('foodSearch').value.trim().toLowerCase();
-  let list=FOODS.filter(f=> (searchCat==='ทั้งหมด'||f[5]===searchCat) && f[0].toLowerCase().includes(q));
-  if(!q && searchCat==='ทั้งหมด') list=FOODS.slice(0,8);
+  let list=allFoods().filter(f=> (searchCat==='ทั้งหมด'||f.cat===searchCat) && f.name.toLowerCase().includes(q));
+  if(!q && searchCat==='ทั้งหมด'){ const cust=list.filter(f=>f.custom); list=[...cust, ...list.filter(f=>!f.custom).slice(0,8)]; }
+  SR=list.slice(0,50);
   const box=$('results');
   const cats=`<div class="catrow" style="padding:8px 10px 4px">`+CATS.map(c=>`<button class="${c===searchCat?'on':''}" onclick="setCat(event,'${c}')">${c}</button>`).join('')+`</div>`;
-  const rows=list.slice(0,40).map(f=>{
-    const idx=FOODS.indexOf(f);
-    return `<div class="r" onclick="pickFood(${idx})"><div class="rn">${f[0]}<small>P ${f[2]} · C ${f[3]} · F ${f[4]} g</small></div><div class="rk">${f[1]} kcal</div></div>`;
-  }).join('') || `<div class="empty" style="padding:14px">ไม่พบ — <a href="#" onclick="openManual();hideResults();return false" style="color:var(--accent)">เพิ่มเอง</a></div>`;
+  const rows=SR.map((f,i)=>
+    `<div class="r" onclick="pickResult(${i})"><div class="rn">${f.custom?'⭐ ':''}${f.name}<small>P ${f.p} · C ${f.c} · F ${f.f} g</small></div><div class="rk">${f.k} kcal</div></div>`
+  ).join('') || `<div class="empty" style="padding:14px">ไม่พบ — <a href="#" onclick="openManual();hideResults();return false" style="color:var(--accent)">เพิ่มเอง</a></div>`;
   box.innerHTML=cats+rows; box.style.display='block';
 }
 function setCat(e,c){ e.stopPropagation(); searchCat=c; onSearch(); }
 function hideResults(){ const b=$('results'); if(b) b.style.display='none'; }
-function pickFood(idx){
-  const f=FOODS[idx];
-  const qtyStr=prompt(`${f[0]}\nกี่หน่วย? (${f[1]} kcal/หน่วย)`,"1");
+function pickResult(i){
+  const f=SR[i]; if(!f) return;
+  const qtyStr=prompt(`${f.name}\nกี่หน่วย? (${f.k} kcal/หน่วย)`,"1");
   if(qtyStr===null) return;
   const q=parseFloat(qtyStr)||1;
-  dayData(cur).foods.push({name: q!==1?`${f[0]} ×${q}`:f[0], k:f[1]*q, p:f[2]*q, c:f[3]*q, f:f[4]*q});
+  dayData(cur).foods.push({name: q!==1?`${f.name} ×${q}`:f.name, k:f.k*q, p:f.p*q, c:f.c*q, f:f.f*q});
   save(); $('foodSearch').value=''; hideResults(); renderToday();
 }
 function openManual(){ const m=$('manualBox'); m.style.display = m.style.display==='none'?'block':'none'; if(m.style.display==='block')$('mName').focus(); }
@@ -581,6 +607,39 @@ function addManual(){
   save(); ['mName','mK','mP','mC','mF'].forEach(i=>$(i).value=''); $('mName').focus(); renderToday();
 }
 function delFood(i){ dayData(cur).foods.splice(i,1); save(); renderToday(); }
+
+/* ---- custom foods (เมนูของฉัน) ---- */
+let editingCF=null;
+function initCFCat(){
+  const sel=$('cfCat'); if(!sel) return;
+  sel.innerHTML=[...CATS.slice(1),'อื่นๆ'].map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+function saveCustom(){
+  const name=$('cfName').value.trim(); const k=+$('cfK').value;
+  if(!name||!k){ alert('กรอกชื่อเมนูและ kcal ก่อนนะ'); return; }
+  const item={name,k,p:+$('cfP').value||0,c:+$('cfC').value||0,f:+$('cfF').value||0,cat:$('cfCat').value};
+  DB.customFoods=DB.customFoods||[];
+  if(editingCF!=null){ DB.customFoods[editingCF]=item; editingCF=null; $('cfBtn').textContent='บันทึก'; }
+  else DB.customFoods.unshift(item);
+  save();
+  ['cfName','cfK','cfP','cfC','cfF'].forEach(i=>$(i).value='');
+  renderCustom();
+}
+function editCustom(i){
+  const c=DB.customFoods[i]; if(!c) return;
+  $('cfName').value=c.name; $('cfK').value=c.k; $('cfP').value=c.p||''; $('cfC').value=c.c||''; $('cfF').value=c.f||''; $('cfCat').value=c.cat||'อื่นๆ';
+  editingCF=i; $('cfBtn').textContent='อัปเดต'; $('cfName').focus();
+}
+function delCustom(i){ if(confirm('ลบเมนูนี้?')){ DB.customFoods.splice(i,1); if(editingCF===i){editingCF=null;$('cfBtn').textContent='บันทึก';} save(); renderCustom(); } }
+function renderCustom(){
+  const L=DB.customFoods||[];
+  $('customList').innerHTML = L.length? L.map((c,i)=>
+    `<div class="item"><span class="name">⭐ ${c.name}<small>${c.cat} · P ${fmt(c.p||0)} · C ${fmt(c.c||0)} · F ${fmt(c.f||0)} g</small></span>`+
+    `<span class="kcal">${fmt(c.k)}</span>`+
+    `<button class="del" onclick="editCustom(${i})" style="color:var(--blue)">✎</button>`+
+    `<button class="del" onclick="delCustom(${i})">✕</button></div>`
+  ).join('') : '<div class="empty">ยังไม่มีเมนูของฉัน</div>';
+}
 
 /* ---- exercise ---- */
 function addExPreset(name,k){ dayData(cur).ex.push({name,kcal:k}); save(); renderToday(); }
@@ -754,6 +813,7 @@ if('serviceWorker' in navigator){
 }
 
 /* ============ INIT ============ */
+initCFCat(); renderCustom();
 if(DB.profile) showTDEE();
 renderToday();
 if(!DB.profile){ setTimeout(()=>go('profile'),200); }
