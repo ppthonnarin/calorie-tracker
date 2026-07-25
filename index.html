@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>Calorie Deficit Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deficit">
+<style>
+  :root{
+    --bg:#0f1115; --card:#1a1d24; --card2:#22262f; --line:#2c313b;
+    --text:#e8eaed; --muted:#9aa0aa; --accent:#4ade80; --accent2:#22c55e;
+    --warn:#f87171; --blue:#60a5fa; --amber:#fbbf24; --purple:#c084fc;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5;
+    -webkit-font-smoothing:antialiased; padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:560px; margin:0 auto; padding:16px}
+  header{padding:calc(12px + env(safe-area-inset-top)) 0 4px}
+  header h1{font-size:22px; margin:0; font-weight:700}
+  header p{margin:4px 0 0; color:var(--muted); font-size:13px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:16px}
+  .card h2{font-size:15px; margin:0 0 14px; font-weight:600; display:flex; align-items:center; gap:8px}
+  .card h2 .em{font-size:18px}
+  label{display:block; font-size:12px; color:var(--muted); margin:0 0 5px}
+  input,select,button{font-family:inherit; font-size:15px}
+  input,select{
+    width:100%; padding:11px 12px; background:var(--card2); border:1px solid var(--line);
+    border-radius:10px; color:var(--text); outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex; gap:10px; margin-bottom:12px}
+  .row>div{flex:1}
+  .seg{display:flex; background:var(--card2); border-radius:10px; padding:3px; gap:3px}
+  .seg button{flex:1; background:transparent; border:none; color:var(--muted); padding:9px; border-radius:8px; cursor:pointer; font-size:14px}
+  .seg button.on{background:var(--accent); color:#06210f; font-weight:600}
+  .btn{width:100%; padding:12px; background:var(--accent); color:#06210f; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:15px}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:var(--card2); color:var(--text); border:1px solid var(--line); font-weight:500}
+  .btn.sm{padding:9px; font-size:13px}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .stat{background:var(--card2); border-radius:12px; padding:14px; text-align:center}
+  .stat .n{font-size:24px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums}
+  .stat .l{font-size:11px; color:var(--muted); margin-top:2px}
+  .stat.big{grid-column:1/3}
+  .stat.big .n{font-size:32px}
+  .stat.tri{grid-column:auto}
+  .three{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+  .accent{color:var(--accent)} .warn{color:var(--warn)} .blue{color:var(--blue)} .amber{color:var(--amber)} .purple{color:var(--purple)}
+  .add-row{display:flex; gap:8px}
+  .add-row button{flex:0 0 auto; width:46px; padding:0; font-size:22px; line-height:1}
+  .list{margin-top:12px}
+  .item{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:none}
+  .item .name{flex:1; font-size:14px}
+  .item .name small{display:block; color:var(--muted); font-size:11px; margin-top:1px}
+  .item .kcal{color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .item .del{background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:2px 6px}
+  .empty{color:var(--muted); font-size:13px; text-align:center; padding:16px 0}
+  .quick{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px}
+  .quick button{background:var(--card2); border:1px solid var(--line); color:var(--text); border-radius:20px; padding:6px 11px; font-size:12px; cursor:pointer}
+  .quick button:active{border-color:var(--accent)}
+  .datebar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px}
+  .datebar button{background:var(--card2); border:1px solid var(--line); color:var(--text); width:38px; height:38px; border-radius:10px; cursor:pointer; font-size:16px}
+  .datebar .d{flex:1; text-align:center; font-weight:600; font-size:15px}
+  .bar{height:10px; background:var(--card2); border-radius:6px; overflow:hidden; margin-top:6px}
+  .bar > i{display:block; height:100%; background:var(--accent); border-radius:6px; transition:width .3s}
+  .bar > i.over{background:var(--warn)}
+  .macro{margin-bottom:12px}
+  .macro:last-child{margin-bottom:0}
+  .macro .top{display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px}
+  .macro .top b{font-variant-numeric:tabular-nums}
+  .mbar{height:8px; background:var(--card2); border-radius:5px; overflow:hidden}
+  .mbar > i{display:block; height:100%; border-radius:5px; transition:width .3s}
+  .glasses{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+  .glasses .g{font-size:26px; cursor:pointer; filter:grayscale(1) opacity(.35); transition:.15s; user-select:none}
+  .glasses .g.full{filter:none; transform:translateY(-1px)}
+  .streak{font-size:12px; font-weight:700; background:rgba(251,146,60,.15); color:#fb923c; padding:3px 10px; border-radius:20px; margin-left:auto}
+  .kv{display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:var(--muted)}
+  .kv b{color:var(--text); font-variant-numeric:tabular-nums}
+  svg{display:block; width:100%; height:auto}
+  .tabbar{position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--line); display:flex; z-index:10; padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar button{flex:1; background:none; border:none; color:var(--muted); padding:10px 0 12px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar .ic{font-size:20px}
+  .page{display:none} .page.on{display:block}
+  .hint{font-size:12px; color:var(--muted); margin-top:8px; line-height:1.45}
+  .center{text-align:center}
+  /* search dropdown */
+  .search-wrap{position:relative}
+  .results{position:absolute; left:0; right:0; top:calc(100% + 6px); background:var(--card2); border:1px solid var(--line); border-radius:12px; z-index:5; max-height:280px; overflow-y:auto; box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .results .r{display:flex; align-items:center; gap:10px; padding:11px 13px; cursor:pointer; border-bottom:1px solid var(--line)}
+  .results .r:last-child{border-bottom:none}
+  .results .r:active,.results .r.hi{background:var(--card)}
+  .results .r .rn{flex:1; font-size:14px}
+  .results .r .rn small{display:block; color:var(--muted); font-size:11px}
+  .results .r .rk{font-size:13px; color:var(--accent); font-variant-numeric:tabular-nums}
+  .catrow{display:flex; gap:6px; overflow-x:auto; margin-bottom:10px; padding-bottom:2px; -webkit-overflow-scrolling:touch}
+  .catrow button{white-space:nowrap; background:var(--card2); border:1px solid var(--line); color:var(--muted); border-radius:20px; padding:6px 12px; font-size:12px; cursor:pointer}
+  .catrow button.on{background:var(--accent); color:#06210f; border-color:var(--accent); font-weight:600}
+  .servrow{display:flex; align-items:center; gap:10px; margin-top:10px}
+  .servrow label{margin:0; white-space:nowrap}
+  .servrow input{width:70px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔥 Calorie Deficit Tracker</h1>
+    <p>ติดตามแคลอรี่ขาดดุล · โปรตีน/คาร์บ/ไขมัน · ออกกำลังกาย</p>
+  </header>
+
+  <!-- ===================== TODAY ===================== -->
+  <div class="page on" id="page-today">
+    <div class="datebar">
+      <button onclick="shiftDay(-1)">‹</button>
+      <div class="d" id="dateLabel"></div>
+      <button onclick="shiftDay(1)" id="nextBtn">›</button>
+    </div>
+
+    <div class="card">
+      <h2><span class="em">🎯</span> สรุปวันนี้ <span id="streakPill" class="streak" style="display:none"></span></h2>
+      <div class="stat-grid">
+        <div class="stat big">
+          <div class="n" id="todayDeficit">0</div>
+          <div class="l" id="todayDeficitL">deficit วันนี้ (kcal)</div>
+        </div>
+      </div>
+      <div class="three" style="margin-top:10px">
+        <div class="stat tri"><div class="n accent" id="todayEaten">0</div><div class="l">กินไป</div></div>
+        <div class="stat tri"><div class="n blue" id="todayBurn">0</div><div class="l">เผาผลาญ 🏃</div></div>
+        <div class="stat tri"><div class="n" id="todayBudget">0</div><div class="l">งบ/วัน</div></div>
+      </div>
+      <div class="bar"><i id="todayBar" style="width:0%"></i></div>
+      <div class="kv" style="margin-top:8px"><span>เหลือกินได้อีก (รวมออกกำลังกาย)</span><b id="todayLeft">0 kcal</b></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="em">🥗</span> สารอาหาร (Macros)</h2>
+      <div id="macros"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="em">🍽️</span> บันทึกอาหาร</h2>
+      <div class="search-wrap">
+        <input id="foodSearch" placeholder="🔍 ค้นหาอาหารไทย เช่น ข้าวมันไก่, ส้มตำ..." autocomplete="off"
+               oninput="onSearch()" onfocus="onSearch()">
+        <div class="results" id="results" style="display:none"></div>
+      </div>
+      <div class="hint">พิมพ์ชื่ออาหารเพื่อค้นจากฐานข้อมูล หรือ <a href="#" onclick="openManual();return false" style="color:var(--accent)">เพิ่มเอง</a></div>
+      <div id="manualBox" style="display:none; margin-top:10px">
+        <div class="add-row" style="margin-bottom:8px">
+          <input id="mName" placeholder="ชื่ออาหาร" style="flex:2">
+          <input id="mK" type="number" inputmode="numeric" placeholder="kcal" style="flex:1">
+        </div>
+        <div class="add-row">
+          <input id="mP" type="number" inputmode="decimal" placeholder="P (g)">
+          <input id="mC" type="number" inputmode="decimal" placeholder="C (g)">
+          <input id="mF" type="number" inputmode="decimal" placeholder="F (g)">
+          <button class="btn" onclick="addManual()">+</button>
+        </div>
+      </div>
+      <div class="list" id="foodList"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="em">🏃</span> ออกกำลังกาย</h2>
+      <div class="quick" id="quickEx"></div>
+      <div class="add-row">
+        <input id="exName" placeholder="กิจกรรม เช่น วิ่ง 30 นาที" style="flex:2">
+        <input id="exKcal" type="number" inputmode="numeric" placeholder="kcal" style="flex:1">
+        <button class="btn" onclick="addEx()">+</button>
+      </div>
+      <div class="list" id="exList"></div>
+      <div class="hint">แคลอรี่ที่เผาผลาญจะถูกบวกเข้าไปใน deficit ของวันนั้น</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="em">💧</span> ดื่มน้ำ</h2>
+      <div class="kv" style="margin-bottom:2px"><span id="waterLabel">0 / 8 แก้ว</span><b id="waterMl">0 ml</b></div>
+      <div class="glasses" id="glasses"></div>
+      <div class="add-row" style="margin-top:12px">
+        <button class="btn ghost" onclick="addWater(-1)" style="flex:1">− แก้ว</button>
+        <button class="btn" onclick="addWater(1)" style="flex:2">＋ ดื่มน้ำ 1 แก้ว (250ml)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== WEIGHT ===================== -->
+  <div class="page" id="page-weight">
+    <div class="card">
+      <h2><span class="em">⚖️</span> บันทึกน้ำหนัก</h2>
+      <div class="add-row">
+        <input id="wDate" type="date">
+        <input id="wKg" type="number" inputmode="decimal" step="0.1" placeholder="kg">
+        <button class="btn" onclick="addWeight()">+</button>
+      </div>
+      <div id="wStats" class="stat-grid" style="margin-top:14px"></div>
+    </div>
+    <div class="card">
+      <h2><span class="em">📉</span> กราฟน้ำหนัก</h2>
+      <div id="chart"></div>
+      <div class="list" id="wList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== SUMMARY ===================== -->
+  <div class="page" id="page-summary">
+    <div class="card">
+      <h2><span class="em">📊</span> Deficit สะสม</h2>
+      <div class="stat-grid">
+        <div class="stat big">
+          <div class="n accent" id="totalFat">0 g</div>
+          <div class="l">ประเมินไขมันที่ลดได้ (จาก deficit สะสม)</div>
+        </div>
+        <div class="stat"><div class="n" id="totalDeficit">0</div><div class="l">deficit รวม (kcal)</div></div>
+        <div class="stat"><div class="n" id="daysLogged">0</div><div class="l">จำนวนวันที่บันทึก</div></div>
+      </div>
+      <div class="hint">📌 7,700 kcal ≈ ไขมัน 1 กก. · deficit คิดจาก (TDEE + ออกกำลังกาย − อาหาร) เป็นการประเมินแนวโน้ม</div>
+    </div>
+    <div class="card">
+      <h2><span class="em">🗓️</span> 14 วันล่าสุด</h2>
+      <div id="histChart"></div>
+      <div id="histList" class="list"></div>
+    </div>
+  </div>
+
+  <!-- ===================== PROFILE / TDEE ===================== -->
+  <div class="page" id="page-profile">
+    <div class="card">
+      <h2><span class="em">🧮</span> คำนวณ TDEE & เป้าหมาย</h2>
+      <label>เพศ</label>
+      <div class="seg" id="sexSeg" style="margin-bottom:12px">
+        <button data-v="male" class="on" onclick="setSex('male')">ชาย</button>
+        <button data-v="female" onclick="setSex('female')">หญิง</button>
+      </div>
+      <div class="row">
+        <div><label>อายุ (ปี)</label><input id="pAge" type="number" inputmode="numeric" placeholder="30"></div>
+        <div><label>ส่วนสูง (ซม.)</label><input id="pHeight" type="number" inputmode="numeric" placeholder="170"></div>
+      </div>
+      <div class="row">
+        <div><label>น้ำหนัก (กก.)</label><input id="pWeight" type="number" inputmode="decimal" placeholder="70"></div>
+        <div><label>เป้าหมาย/สัปดาห์</label>
+          <select id="pGoal">
+            <option value="0">คงน้ำหนัก</option>
+            <option value="0.25">ลด 0.25 กก./สัปดาห์</option>
+            <option value="0.5" selected>ลด 0.5 กก./สัปดาห์</option>
+            <option value="0.75">ลด 0.75 กก./สัปดาห์</option>
+            <option value="1">ลด 1 กก./สัปดาห์</option>
+          </select>
+        </div>
+      </div>
+      <label>ระดับกิจกรรม (ในชีวิตประจำวัน)</label>
+      <select id="pAct" style="margin-bottom:14px">
+        <option value="1.2">นั่งทำงาน ไม่ออกกำลังกาย</option>
+        <option value="1.375" selected>ออกกำลังกายเบา 1-3 วัน/สัปดาห์</option>
+        <option value="1.55">ปานกลาง 3-5 วัน/สัปดาห์</option>
+        <option value="1.725">หนัก 6-7 วัน/สัปดาห์</option>
+        <option value="1.9">หนักมาก / นักกีฬา</option>
+      </select>
+      <button class="btn" onclick="saveProfile()">คำนวณ & บันทึก</button>
+      <div id="tdeeResult" style="display:none; margin-top:16px">
+        <div class="stat-grid">
+          <div class="stat"><div class="n blue" id="rBMR">0</div><div class="l">BMR</div></div>
+          <div class="stat"><div class="n" id="rTDEE">0</div><div class="l">TDEE (maintenance)</div></div>
+          <div class="stat big"><div class="n accent" id="rTarget">0</div><div class="l">เป้าหมายกินต่อวัน (kcal)</div></div>
+        </div>
+        <div class="three" style="margin-top:10px">
+          <div class="stat tri"><div class="n accent" id="rP">0</div><div class="l">โปรตีน (g)</div></div>
+          <div class="stat tri"><div class="n amber" id="rC">0</div><div class="l">คาร์บ (g)</div></div>
+          <div class="stat tri"><div class="n purple" id="rF">0</div><div class="l">ไขมัน (g)</div></div>
+        </div>
+        <div class="hint" id="rNote"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="em">⚙️</span> ข้อมูล & แอป</h2>
+      <button class="btn ghost sm" id="installBtn" onclick="doInstall()" style="display:none; margin-bottom:8px">📲 ติดตั้งแอปลงเครื่อง</button>
+      <button class="btn ghost sm" onclick="exportData()" style="margin-bottom:8px">📤 ส่งออกข้อมูล (backup)</button>
+      <button class="btn ghost sm" onclick="document.getElementById('imp').click()" style="margin-bottom:8px">📥 นำเข้าข้อมูล</button>
+      <input type="file" id="imp" accept="application/json" style="display:none" onchange="importData(event)">
+      <button class="btn ghost sm" onclick="resetAll()" style="color:var(--warn)">🗑️ ล้างข้อมูลทั้งหมด</button>
+      <div class="hint">ข้อมูลเก็บในเครื่องนี้ (browser) เท่านั้น · <span id="pwaState"></span></div>
+    </div>
+  </div>
+</div>
+
+<nav class="tabbar">
+  <button class="on" data-p="today" onclick="go('today')"><span class="ic">🔥</span>วันนี้</button>
+  <button data-p="weight" onclick="go('weight')"><span class="ic">⚖️</span>น้ำหนัก</button>
+  <button data-p="summary" onclick="go('summary')"><span class="ic">📊</span>สรุป</button>
+  <button data-p="profile" onclick="go('profile')"><span class="ic">🧮</span>เป้าหมาย</button>
+</nav>
+
+<script>
+/* ============ FOOD DATABASE (ต่อ 1 หน่วยบริโภค) ============ */
+/* [ชื่อ, kcal, โปรตีน, คาร์บ, ไขมัน, หมวด] */
+const FOODS=[
+  // ข้าว/เส้น จานเดียว
+  ["ข้าวสวย 1 ทัพพี",80,1.5,18,0.2,"ข้าว/เส้น"],
+  ["ข้าวสวย 1 จาน",240,4.5,53,0.5,"ข้าว/เส้น"],
+  ["ข้าวเหนียว 1 ปั้น",170,3.5,37,0.3,"ข้าว/เส้น"],
+  ["ข้าวมันไก่",595,28,68,22,"ข้าว/เส้น"],
+  ["ข้าวขาหมู",680,30,72,30,"ข้าว/เส้น"],
+  ["ข้าวหมูแดง",520,24,66,17,"ข้าว/เส้น"],
+  ["ข้าวผัด",520,15,62,22,"ข้าว/เส้น"],
+  ["ข้าวผัดกะเพราไก่ไข่ดาว",640,30,60,30,"ข้าว/เส้น"],
+  ["ข้าวหมูกระเทียม",560,26,60,24,"ข้าว/เส้น"],
+  ["ข้าวไข่เจียว",480,14,55,22,"ข้าว/เส้น"],
+  ["ผัดไทย",550,18,70,20,"ข้าว/เส้น"],
+  ["ก๋วยเตี๋ยวน้ำหมู",380,20,45,12,"ข้าว/เส้น"],
+  ["ก๋วยเตี๋ยวต้มยำ",420,22,48,15,"ข้าว/เส้น"],
+  ["เย็นตาโฟ",400,18,50,13,"ข้าว/เส้น"],
+  ["บะหมี่หมูแดง",450,24,52,15,"ข้าว/เส้น"],
+  ["สปาเกตตีคาร์โบนารา",650,22,70,30,"ข้าว/เส้น"],
+  // กับข้าว/โปรตีน
+  ["อกไก่ต้ม 100g",165,31,0,3.6,"โปรตีน"],
+  ["อกไก่ย่าง 100g",190,29,0,7.5,"โปรตีน"],
+  ["ไข่ต้ม 1 ฟอง",78,6.3,0.6,5.3,"โปรตีน"],
+  ["ไข่ดาว 1 ฟอง",90,6.3,0.4,7,"โปรตีน"],
+  ["ไข่เจียว 1 ฟอง",150,7,1,13,"โปรตีน"],
+  ["หมูปิ้ง 1 ไม้",90,6,4,5.5,"โปรตีน"],
+  ["ไก่ทอด 1 ชิ้น",260,18,10,17,"โปรตีน"],
+  ["ปลาทูทอด 1 ตัว",160,18,0,10,"โปรตีน"],
+  ["ปลานึ่ง 100g",120,22,1,3,"โปรตีน"],
+  ["กุ้งเผา 100g",99,24,0.2,0.3,"โปรตีน"],
+  ["เต้าหู้ไข่ 100g",80,7,3,5,"โปรตีน"],
+  ["ลูกชิ้นปิ้ง 5 ลูก",120,8,10,5,"โปรตีน"],
+  // ต้ม/ผัด/แกง
+  ["ต้มยำกุ้ง 1 ถ้วย",130,15,8,5,"กับข้าว"],
+  ["แกงเขียวหวานไก่ 1 ถ้วย",240,15,10,16,"กับข้าว"],
+  ["ผัดผักรวม 1 จาน",120,4,12,7,"กับข้าว"],
+  ["ผัดกะเพราหมู 1 จาน",300,20,10,20,"กับข้าว"],
+  ["ไข่พะโล้ 1 ถ้วย",280,16,12,18,"กับข้าว"],
+  ["ส้มตำไทย 1 จาน",180,5,28,5,"กับข้าว"],
+  ["ลาบหมู 1 จาน",230,20,8,13,"กับข้าว"],
+  ["น้ำตกหมู 1 จาน",250,22,8,14,"กับข้าว"],
+  ["ยำวุ้นเส้น 1 จาน",260,14,30,9,"กับข้าว"],
+  ["สลัดอกไก่ 1 จาน",300,28,15,14,"กับข้าว"],
+  // ผลไม้
+  ["กล้วยหอม 1 ลูก",105,1.3,27,0.4,"ผลไม้"],
+  ["แอปเปิล 1 ลูก",95,0.5,25,0.3,"ผลไม้"],
+  ["ส้ม 1 ลูก",62,1.2,15,0.2,"ผลไม้"],
+  ["มะม่วงสุก 1 ถ้วย",100,0.8,25,0.4,"ผลไม้"],
+  ["แตงโม 1 ถ้วย",46,0.9,12,0.2,"ผลไม้"],
+  ["มะละกอ 1 ถ้วย",62,0.7,16,0.2,"ผลไม้"],
+  // เครื่องดื่ม
+  ["กาแฟดำ / อเมริกาโน่",5,0.3,1,0,"เครื่องดื่ม"],
+  ["กาแฟเย็น (หวานน้อย)",180,3,28,6,"เครื่องดื่ม"],
+  ["ชาไทยเย็น",280,4,42,11,"เครื่องดื่ม"],
+  ["นมจืด 1 กล่อง",120,8,12,5,"เครื่องดื่ม"],
+  ["นมถั่วเหลือง 1 กล่อง",100,5,14,3,"เครื่องดื่ม"],
+  ["น้ำอัดลม 1 กระป๋อง",140,0,39,0,"เครื่องดื่ม"],
+  ["เบียร์ 1 กระป๋อง",150,1.6,13,0,"เครื่องดื่ม"],
+  ["โปรตีนเชค 1 สกู๊ป",120,24,3,1.5,"เครื่องดื่ม"],
+  // ขนม/ของทานเล่น
+  ["ขนมปังปิ้ง 1 แผ่น",90,3,15,2,"ขนม"],
+  ["โดนัท 1 ชิ้น",250,3,30,13,"ขนม"],
+  ["เค้ก 1 ชิ้น",350,4,45,17,"ขนม"],
+  ["ข้าวเหนียวมะม่วง",380,6,68,10,"ขนม"],
+  ["มันฝรั่งทอด 1 ถุงเล็ก",150,2,15,10,"ขนม"],
+  ["ไอศกรีม 1 สกู๊ป",140,2,18,7,"ขนม"],
+  ["เวเฟอร์ 1 ซอง",120,1,17,5,"ขนม"],
+  ["คุกกี้ 2 ชิ้น",160,2,20,8,"ขนม"],
+  ["ป๊อปคอร์น 1 ถ้วย",90,2,12,4,"ขนม"],
+  ["ถั่วอบ 1 กำมือ",170,6,6,14,"ขนม"],
+  // เพิ่มเติม ข้าว/เส้น
+  ["ข้าวคลุกกะปิ",480,14,60,20,"ข้าว/เส้น"],
+  ["ข้าวหน้าเป็ด",560,26,68,20,"ข้าว/เส้น"],
+  ["ข้าวต้มหมู 1 ถ้วย",250,14,35,6,"ข้าว/เส้น"],
+  ["โจ๊กหมูไข่ 1 ถ้วย",280,15,38,8,"ข้าว/เส้น"],
+  ["ข้าวซอยไก่",600,22,60,30,"ข้าว/เส้น"],
+  ["ผัดซีอิ๊วหมู",560,18,66,24,"ข้าว/เส้น"],
+  ["ราดหน้าหมู",520,18,62,22,"ข้าว/เส้น"],
+  ["ก๋วยเตี๋ยวเรือ",430,20,46,17,"ข้าว/เส้น"],
+  ["สุกี้น้ำรวมมิตร",320,26,28,12,"ข้าว/เส้น"],
+  ["ข้าวเปล่า + ไก่ทอด",500,26,60,18,"ข้าว/เส้น"],
+  // เพิ่มเติม โปรตีน
+  ["สันในหมูย่าง 100g",143,26,0,4,"โปรตีน"],
+  ["เนื้อวัวย่าง 100g",210,26,0,12,"โปรตีน"],
+  ["ปลาแซลมอนย่าง 100g",208,20,0,13,"โปรตีน"],
+  ["ไข่ขาว 1 ฟอง",17,3.6,0.2,0,"โปรตีน"],
+  ["ไส้กรอก 1 ชิ้น",130,5,3,11,"โปรตีน"],
+  ["ปูอัด 3 ชิ้น",70,6,8,1,"โปรตีน"],
+  // เพิ่มเติม กับข้าว
+  ["แกงส้ม 1 ถ้วย",120,10,14,3,"กับข้าว"],
+  ["ต้มข่าไก่ 1 ถ้วย",210,14,8,14,"กับข้าว"],
+  ["ผัดพริกแกงหมู 1 จาน",280,18,10,18,"กับข้าว"],
+  ["ยำทะเล 1 จาน",180,20,12,5,"กับข้าว"],
+  ["ไข่ตุ๋น 1 ถ้วย",120,9,3,8,"กับข้าว"],
+  ["ผัดบรอกโคลีกุ้ง 1 จาน",160,14,10,7,"กับข้าว"],
+  // ผลไม้
+  ["สับปะรด 1 ถ้วย",82,0.9,22,0.2,"ผลไม้"],
+  ["ฝรั่ง 1 ลูก",112,4,24,1.6,"ผลไม้"],
+  ["องุ่น 1 ถ้วย",104,1.1,27,0.2,"ผลไม้"],
+  ["ทุเรียน 1 เม็ด",150,1.5,28,5,"ผลไม้"],
+  // เครื่องดื่ม
+  ["ลาเต้ร้อน",120,7,10,6,"เครื่องดื่ม"],
+  ["ชาเขียวไม่หวาน",0,0,0,0,"เครื่องดื่ม"],
+  ["น้ำเปล่า",0,0,0,0,"เครื่องดื่ม"],
+  ["น้ำส้มคั้น 1 แก้ว",110,2,26,0.5,"เครื่องดื่ม"],
+  ["โกโก้เย็น",250,6,36,9,"เครื่องดื่ม"],
+  // ฟาสต์ฟู้ด
+  ["เบอร์เกอร์ไก่",450,25,40,22,"ฟาสต์ฟู้ด"],
+  ["เบอร์เกอร์เนื้อ (บิ๊ก)",550,25,45,29,"ฟาสต์ฟู้ด"],
+  ["เฟรนช์ฟรายส์ (กลาง)",340,4,44,17,"ฟาสต์ฟู้ด"],
+  ["ไก่ทอด KFC 1 ชิ้น",290,19,11,19,"ฟาสต์ฟู้ด"],
+  ["พิซซ่า 1 ชิ้น",285,12,36,10,"ฟาสต์ฟู้ด"],
+  ["ไก่ป๊อป 1 ถ้วย",300,18,20,17,"ฟาสต์ฟู้ด"],
+  ["ฮอทดอก 1 ชิ้น",290,10,24,17,"ฟาสต์ฟู้ด"],
+  // อาหารเช้า
+  ["ปาท่องโก๋ 1 คู่",150,3,18,8,"อาหารเช้า"],
+  ["แซนด์วิชแฮมชีส",300,14,30,14,"อาหารเช้า"],
+  ["ซีเรียล + นม 1 ถ้วย",250,10,40,6,"อาหารเช้า"],
+  ["ขนมปังปิ้งเนยน้ำตาล",180,3,26,7,"อาหารเช้า"],
+  ["ข้าวต้มปลา 1 ถ้วย",230,18,32,4,"อาหารเช้า"],
+  ["โยเกิร์ตกรีก 1 ถ้วย",130,12,9,4,"อาหารเช้า"],
+  ["ไข่กระทะ",320,16,8,25,"อาหารเช้า"],
+];
+const CATS=["ทั้งหมด","อาหารเช้า","ข้าว/เส้น","โปรตีน","กับข้าว","ฟาสต์ฟู้ด","ผลไม้","เครื่องดื่ม","ขนม"];
+
+/* ออกกำลังกาย: kcal ต่อ 30 นาที (อ้างอิงคน ~65-70kg) */
+const EX_PRESETS=[
+  ["เดินเร็ว 30 นาที",150],["วิ่ง 30 นาที",300],["ปั่นจักรยาน 30 นาที",250],
+  ["ว่ายน้ำ 30 นาที",280],["เวทเทรนนิ่ง 30 นาที",180],["โยคะ 30 นาที",120],
+  ["HIIT 20 นาที",220],["แบดมินตัน 30 นาที",200],["เต้น 30 นาที",190],
+];
+
+/* ============ STORAGE ============ */
+const KEY='cdt_v2';
+let DB = load();
+function load(){
+  try{
+    let d=JSON.parse(localStorage.getItem(KEY));
+    if(d) return migrate(d);
+    let old=JSON.parse(localStorage.getItem('cdt_v1'));
+    if(old) return migrate(old);
+  }catch(e){}
+  return {profile:null, days:{}, weights:[]};
+}
+function migrate(d){
+  d.profile=d.profile||null; d.days=d.days||{}; d.weights=d.weights||[];
+  for(const k in d.days){ const dd=d.days[k]; dd.foods=(dd.foods||[]).map(f=>({name:f.name,k:f.k,p:f.p||0,c:f.c||0,f:f.f||0})); dd.ex=dd.ex||[]; dd.water=dd.water||0; }
+  return d;
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(DB)); }
+
+/* ============ HELPERS ============ */
+const $=id=>document.getElementById(id);
+const todayStr=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
+let cur = todayStr();
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+function thDate(s){
+  const d=new Date(s+'T00:00:00');
+  const days=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const t=todayStr();
+  const y=new Date(Date.now()-864e5); y.setMinutes(y.getMinutes()-y.getTimezoneOffset());
+  const ys=y.toISOString().slice(0,10);
+  let pre = s===t?'วันนี้ · ':(s===ys?'เมื่อวาน · ':'');
+  return pre + `${days[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+}
+
+/* ============ NAV ============ */
+function go(p){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
+  $('page-'+p).classList.add('on');
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  if(p==='weight') renderWeight();
+  if(p==='summary') renderSummary();
+  window.scrollTo(0,0);
+}
+
+/* ============ PROFILE / TDEE ============ */
+let sex='male';
+function setSex(s){ sex=s; document.querySelectorAll('#sexSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===s)); }
+function calcTDEE(p){
+  const s = p.sex==='male'?5:-161;
+  const bmr = 10*p.weight + 6.25*p.height - 5*p.age + s;
+  const tdee = bmr*p.act;
+  const target = tdee - p.goal*7700/7;
+  // macro targets: protein 2g/kg, fat 25% kcal, rest carbs
+  const protein = 2*p.weight;
+  const fat = target*0.25/9;
+  const carb = Math.max(0,(target - protein*4 - fat*9)/4);
+  return {bmr, tdee, target, protein, fat, carb};
+}
+function saveProfile(){
+  const p={ sex, age:+$('pAge').value, height:+$('pHeight').value, weight:+$('pWeight').value,
+            act:+$('pAct').value, goal:+$('pGoal').value };
+  if(!p.age||!p.height||!p.weight){ alert('กรอกอายุ ส่วนสูง และน้ำหนักให้ครบก่อนนะ'); return; }
+  DB.profile=p; save();
+  if(!DB.weights.some(w=>w.date===todayStr())){ DB.weights.push({date:todayStr(),kg:p.weight}); DB.weights.sort((a,b)=>a.date<b.date?-1:1); save(); }
+  showTDEE(); renderToday();
+  alert('บันทึกแล้ว ✓ ไปที่แท็บ "วันนี้" เพื่อเริ่มบันทึกได้เลย');
+  go('today');
+}
+function showTDEE(){
+  const p=DB.profile; if(!p) return;
+  setSex(p.sex); $('pAge').value=p.age; $('pHeight').value=p.height; $('pWeight').value=p.weight; $('pAct').value=p.act; $('pGoal').value=p.goal;
+  const r=calcTDEE(p);
+  $('rBMR').textContent=fmt(r.bmr); $('rTDEE').textContent=fmt(r.tdee); $('rTarget').textContent=fmt(r.target);
+  $('rP').textContent=fmt(r.protein); $('rC').textContent=fmt(r.carb); $('rF').textContent=fmt(r.fat);
+  const warn = r.target < (p.sex==='male'?1500:1200);
+  $('rNote').innerHTML = p.goal==0 ? 'โหมดคงน้ำหนัก — กินได้เท่ากับ TDEE'
+    : `ตั้งเป้า deficit ~<b>${fmt(p.goal*7700/7)}</b> kcal/วัน → ลดได้ราว <b>${p.goal}</b> กก./สัปดาห์`
+      + (warn?'<br><span class="warn">⚠️ เป้าหมายต่ำกว่าขั้นต่ำที่แนะนำ ควรลดเป้าหมายลง</span>':'');
+  $('tdeeResult').style.display='block';
+}
+
+/* ============ TODAY ============ */
+function dayData(d){ if(!DB.days[d]) DB.days[d]={foods:[],ex:[],water:0}; const x=DB.days[d]; if(!x.ex)x.ex=[]; if(x.water==null)x.water=0; return x; }
+const WATER_GLASS=250, WATER_GOAL=8;
+function addWater(n){ const dd=dayData(cur); dd.water=Math.max(0,Math.min(20,(dd.water||0)+n)); save(); renderToday(); }
+function setWater(n){ const dd=dayData(cur); dd.water=n; save(); renderToday(); }
+function renderWater(dd){
+  const g=dd.water||0;
+  $('waterLabel').textContent=`${g} / ${WATER_GOAL} แก้ว`;
+  $('waterMl').textContent=`${g*WATER_GLASS} ml`;
+  let n=Math.max(WATER_GOAL,g);
+  let html='';
+  for(let i=1;i<=n;i++) html+=`<span class="g ${i<=g?'full':''}" onclick="setWater(${i===g?i-1:i})">🥤</span>`;
+  $('glasses').innerHTML=html;
+}
+/* streak: จำนวนวันติดต่อกัน (นับถึงวันนี้/เมื่อวาน) ที่ทำ deficit สำเร็จ */
+function calcStreak(){
+  if(!DB.profile) return 0;
+  const tdee=calcTDEE(DB.profile).tdee;
+  const ok=d=>{ const dd=DB.days[d]; if(!dd) return null; const eaten=dd.foods.reduce((s,f)=>s+f.k,0); if(eaten<=0) return null; const burn=(dd.ex||[]).reduce((s,e)=>s+e.kcal,0); return (tdee+burn-eaten)>=0; };
+  let streak=0; const d=new Date(todayStr()+'T00:00:00');
+  // ถ้าวันนี้ยังไม่ได้บันทึก ให้เริ่มนับจากเมื่อวาน
+  if(ok(todayStr())===null) d.setDate(d.getDate()-1);
+  for(let i=0;i<400;i++){
+    const s=d.toISOString().slice(0,10); const r=ok(s);
+    if(r===true){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+function shiftDay(n){
+  const d=new Date(cur+'T00:00:00'); d.setDate(d.getDate()+n);
+  const ns=d.toISOString().slice(0,10);
+  if(ns>todayStr()) return;
+  cur=ns; hideResults(); renderToday();
+}
+
+/* ---- food search ---- */
+let searchCat='ทั้งหมด';
+function onSearch(){
+  const q=$('foodSearch').value.trim().toLowerCase();
+  let list=FOODS.filter(f=> (searchCat==='ทั้งหมด'||f[5]===searchCat) && f[0].toLowerCase().includes(q));
+  if(!q && searchCat==='ทั้งหมด') list=FOODS.slice(0,8);
+  const box=$('results');
+  const cats=`<div class="catrow" style="padding:8px 10px 4px">`+CATS.map(c=>`<button class="${c===searchCat?'on':''}" onclick="setCat(event,'${c}')">${c}</button>`).join('')+`</div>`;
+  const rows=list.slice(0,40).map(f=>{
+    const idx=FOODS.indexOf(f);
+    return `<div class="r" onclick="pickFood(${idx})"><div class="rn">${f[0]}<small>P ${f[2]} · C ${f[3]} · F ${f[4]} g</small></div><div class="rk">${f[1]} kcal</div></div>`;
+  }).join('') || `<div class="empty" style="padding:14px">ไม่พบ — <a href="#" onclick="openManual();hideResults();return false" style="color:var(--accent)">เพิ่มเอง</a></div>`;
+  box.innerHTML=cats+rows; box.style.display='block';
+}
+function setCat(e,c){ e.stopPropagation(); searchCat=c; onSearch(); }
+function hideResults(){ const b=$('results'); if(b) b.style.display='none'; }
+function pickFood(idx){
+  const f=FOODS[idx];
+  const qtyStr=prompt(`${f[0]}\nกี่หน่วย? (${f[1]} kcal/หน่วย)`,"1");
+  if(qtyStr===null) return;
+  const q=parseFloat(qtyStr)||1;
+  dayData(cur).foods.push({name: q!==1?`${f[0]} ×${q}`:f[0], k:f[1]*q, p:f[2]*q, c:f[3]*q, f:f[4]*q});
+  save(); $('foodSearch').value=''; hideResults(); renderToday();
+}
+function openManual(){ const m=$('manualBox'); m.style.display = m.style.display==='none'?'block':'none'; if(m.style.display==='block')$('mName').focus(); }
+function addManual(){
+  const name=$('mName').value.trim(); const k=+$('mK').value;
+  if(!name||!k) return;
+  dayData(cur).foods.push({name,k,p:+$('mP').value||0,c:+$('mC').value||0,f:+$('mF').value||0});
+  save(); ['mName','mK','mP','mC','mF'].forEach(i=>$(i).value=''); $('mName').focus(); renderToday();
+}
+function delFood(i){ dayData(cur).foods.splice(i,1); save(); renderToday(); }
+
+/* ---- exercise ---- */
+function addExPreset(name,k){ dayData(cur).ex.push({name,kcal:k}); save(); renderToday(); }
+function addEx(){
+  const name=$('exName').value.trim(); const k=+$('exKcal').value;
+  if(!name||!k) return;
+  dayData(cur).ex.push({name,kcal:k}); save();
+  $('exName').value=''; $('exKcal').value=''; renderToday();
+}
+function delEx(i){ dayData(cur).ex.splice(i,1); save(); renderToday(); }
+
+function macroBar(label,val,tgt,color){
+  const pct=tgt?Math.min(100,val/tgt*100):0;
+  return `<div class="macro"><div class="top"><span>${label}</span><b>${fmt(val)}${tgt?` / ${fmt(tgt)}`:''} g</b></div>`
+    +`<div class="mbar"><i style="width:${pct}%;background:${color}"></i></div></div>`;
+}
+function renderToday(){
+  $('dateLabel').textContent=thDate(cur);
+  $('nextBtn').style.visibility = cur>=todayStr()?'hidden':'visible';
+  const dd=dayData(cur);
+  const eaten=dd.foods.reduce((s,f)=>s+f.k,0);
+  const burn=dd.ex.reduce((s,e)=>s+e.kcal,0);
+  const P=dd.foods.reduce((s,f)=>s+(f.p||0),0);
+  const C=dd.foods.reduce((s,f)=>s+(f.c||0),0);
+  const F=dd.foods.reduce((s,f)=>s+(f.f||0),0);
+  const r=DB.profile?calcTDEE(DB.profile):null;
+  const tdee=r?r.tdee:0, target=r?r.target:0;
+  const deficit = r? (tdee+burn-eaten) : 0;
+
+  $('todayEaten').textContent=fmt(eaten);
+  $('todayBurn').textContent=fmt(burn);
+  $('todayBudget').textContent=r?fmt(target):'—';
+  const dEl=$('todayDeficit');
+  if(!r){ dEl.textContent='—'; dEl.className='n'; $('todayDeficitL').textContent='ตั้งเป้าหมายก่อน (แท็บ 🧮)'; }
+  else{ dEl.textContent=fmt(deficit); dEl.className='n '+(deficit>=0?'accent':'warn'); $('todayDeficitL').textContent=deficit>=0?'deficit วันนี้ (kcal)':'เกินพลังงาน (kcal)'; }
+
+  const allowance = target+burn;
+  const pct=allowance?Math.min(100,eaten/allowance*100):0;
+  const bar=$('todayBar'); bar.style.width=pct+'%'; bar.classList.toggle('over',eaten>allowance&&allowance>0);
+  $('todayLeft').textContent = r? fmt(Math.max(0,allowance-eaten))+' kcal' : '—';
+
+  // macros
+  $('macros').innerHTML =
+    macroBar('🥩 โปรตีน',P,r?r.protein:0,'#4ade80')+
+    macroBar('🍚 คาร์บ',C,r?r.carb:0,'#fbbf24')+
+    macroBar('🥑 ไขมัน',F,r?r.fat:0,'#c084fc');
+
+  // food list
+  $('foodList').innerHTML = dd.foods.length? dd.foods.map((f,i)=>
+    `<div class="item"><span class="name">${f.name}<small>P ${fmt(f.p||0)} · C ${fmt(f.c||0)} · F ${fmt(f.f||0)} g</small></span><span class="kcal">${fmt(f.k)}</span><button class="del" onclick="delFood(${i})">✕</button></div>`
+  ).join('') : '<div class="empty">ยังไม่ได้บันทึกอาหารวันนี้</div>';
+
+  // exercise
+  $('quickEx').innerHTML = EX_PRESETS.map(([n,k])=>`<button onclick="addExPreset('${n}',${k})">${n.replace(' 30 นาที','').replace(' 20 นาที','')} · ${k}</button>`).join('');
+  $('exList').innerHTML = dd.ex.length? dd.ex.map((e,i)=>
+    `<div class="item"><span class="name">${e.name}</span><span class="kcal blue">−${fmt(e.kcal)}</span><button class="del" onclick="delEx(${i})">✕</button></div>`
+  ).join('') : '<div class="empty">ยังไม่ได้บันทึกออกกำลังกาย</div>';
+
+  renderWater(dd);
+
+  const streak=calcStreak(); const sp=$('streakPill');
+  if(streak>0){ sp.style.display='inline-block'; sp.textContent=`🔥 ${streak} วันติด`; }
+  else sp.style.display='none';
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.search-wrap')) hideResults(); });
+
+/* ============ WEIGHT ============ */
+function addWeight(){
+  const date=$('wDate').value||todayStr(); const kg=+$('wKg').value;
+  if(!kg) return;
+  const ex=DB.weights.find(w=>w.date===date);
+  if(ex) ex.kg=kg; else DB.weights.push({date,kg});
+  DB.weights.sort((a,b)=>a.date<b.date?-1:1); save();
+  $('wKg').value=''; renderWeight();
+}
+function delWeight(date){ DB.weights=DB.weights.filter(w=>w.date!==date); save(); renderWeight(); }
+function renderWeight(){
+  $('wDate').value=todayStr();
+  const W=DB.weights;
+  const st=$('wStats');
+  if(W.length){
+    const first=W[0].kg, last=W[W.length-1].kg, diff=last-first, min=Math.min(...W.map(w=>w.kg));
+    st.innerHTML=`
+      <div class="stat"><div class="n">${last}</div><div class="l">ล่าสุด (กก.)</div></div>
+      <div class="stat"><div class="n ${diff<=0?'accent':'warn'}">${diff>0?'+':''}${diff.toFixed(1)}</div><div class="l">เปลี่ยนแปลงรวม</div></div>
+      <div class="stat"><div class="n">${first}</div><div class="l">เริ่มต้น (กก.)</div></div>
+      <div class="stat"><div class="n blue">${min}</div><div class="l">ต่ำสุด (กก.)</div></div>`;
+  } else st.innerHTML='<div class="empty" style="grid-column:1/3">ยังไม่มีข้อมูลน้ำหนัก</div>';
+  $('chart').innerHTML=lineChart(W.map(w=>({x:w.date,y:w.kg})));
+  $('wList').innerHTML = W.length? [...W].reverse().map(w=>
+    `<div class="item"><span class="name">${thDate(w.date)}</span><span class="kcal">${w.kg} กก.</span><button class="del" onclick="delWeight('${w.date}')">✕</button></div>`
+  ).join('') : '';
+}
+function lineChart(pts){
+  if(pts.length<2) return '<div class="empty">บันทึกน้ำหนักอย่างน้อย 2 วันเพื่อดูกราฟ</div>';
+  const W=520,H=180,pad=28;
+  const ys=pts.map(p=>p.y), min=Math.min(...ys), max=Math.max(...ys), rng=(max-min)||1;
+  const X=i=>pad+i*(W-2*pad)/(pts.length-1);
+  const Y=v=>H-pad-(v-min)/rng*(H-2*pad);
+  const d=pts.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ');
+  const area=`M${X(0)},${H-pad} `+pts.map((p,i)=>`L${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')+` L${X(pts.length-1)},${H-pad} Z`;
+  const dots=pts.map((p,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3" fill="#4ade80"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#4ade80" stop-opacity=".28"/><stop offset="1" stop-color="#4ade80" stop-opacity="0"/></linearGradient></defs>
+    <text x="4" y="${Y(max)+4}" fill="#9aa0aa" font-size="10">${max}</text>
+    <text x="4" y="${Y(min)+4}" fill="#9aa0aa" font-size="10">${min}</text>
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${d}" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}</svg>`;
+}
+
+/* ============ SUMMARY ============ */
+function dailyDeficits(){
+  if(!DB.profile) return [];
+  const tdee=calcTDEE(DB.profile).tdee;
+  return Object.keys(DB.days).sort().map(d=>{
+    const dd=DB.days[d];
+    const eaten=dd.foods.reduce((s,f)=>s+f.k,0);
+    const burn=(dd.ex||[]).reduce((s,e)=>s+e.kcal,0);
+    return {date:d, eaten, burn, deficit: eaten>0? tdee+burn-eaten : 0, logged: eaten>0};
+  }).filter(x=>x.logged);
+}
+function renderSummary(){
+  const arr=dailyDeficits();
+  const total=arr.reduce((s,x)=>s+x.deficit,0);
+  $('totalDeficit').textContent=fmt(total); $('totalDeficit').className='n '+(total>=0?'accent':'warn');
+  $('daysLogged').textContent=arr.length;
+  $('totalFat').textContent=(total/7700*1000).toFixed(0)+' g'; $('totalFat').className='n '+(total>=0?'accent':'warn');
+  const last=arr.slice(-14);
+  $('histChart').innerHTML=barChart(last);
+  $('histList').innerHTML = last.length? [...last].reverse().map(x=>
+    `<div class="item"><span class="name">${thDate(x.date)}<small>กิน ${fmt(x.eaten)}${x.burn?` · เผา ${fmt(x.burn)}`:''}</small></span>`+
+    `<span class="kcal ${x.deficit>=0?'accent':'warn'}" style="min-width:70px;text-align:right">${x.deficit>=0?'−':'+'}${fmt(Math.abs(x.deficit))}</span></div>`
+  ).join('') : '<div class="empty">ยังไม่มีข้อมูล เริ่มบันทึกอาหารในแท็บ 🔥</div>';
+}
+function barChart(arr){
+  if(!arr.length) return '';
+  const W=520,H=150,pad=20, n=arr.length;
+  const maxA=Math.max(...arr.map(x=>Math.abs(x.deficit)),1);
+  const gap=(W-2*pad)/n, bw=gap*0.62, mid=H/2;
+  const bars=arr.map((x,i)=>{
+    const h=Math.abs(x.deficit)/maxA*(H/2-pad);
+    const cx=pad+i*gap+gap/2;
+    const y=x.deficit>=0? mid-h : mid;
+    return `<rect x="${(cx-bw/2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${x.deficit>=0?'#4ade80':'#f87171'}"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}"><line x1="${pad}" y1="${mid}" x2="${W-pad}" y2="${mid}" stroke="#2c313b"/>${bars}</svg>`;
+}
+
+/* ============ DATA ============ */
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='calorie-tracker-backup-'+todayStr()+'.json'; a.click();
+}
+function importData(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const o=JSON.parse(r.result); DB=migrate(o); save(); location.reload(); }catch(x){ alert('ไฟล์ไม่ถูกต้อง'); } };
+  r.readAsText(f);
+}
+function resetAll(){ if(confirm('ล้างข้อมูลทั้งหมด? ไม่สามารถกู้คืนได้')){ localStorage.removeItem(KEY); localStorage.removeItem('cdt_v1'); location.reload(); } }
+
+/* ============ PWA ============ */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e; const b=$('installBtn'); if(b)b.style.display='block'; });
+function doInstall(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; $('installBtn').style.display='none'; } else alert('บน iPhone: กดปุ่มแชร์ ▵ ใน Safari แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"'); }
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').then(()=>{ const s=$('pwaState'); if(s)s.textContent='พร้อมใช้แบบออฟไลน์ ✓'; }).catch(()=>{}); });
+}
+
+/* ============ INIT ============ */
+if(DB.profile) showTDEE();
+renderToday();
+if(!DB.profile){ setTimeout(()=>go('profile'),200); }
+</script>
+</body>
+</html>
