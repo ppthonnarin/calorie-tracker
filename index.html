@@ -157,6 +157,9 @@
         <div class="results" id="results" style="display:none"></div>
       </div>
       <div class="hint">พิมพ์ชื่ออาหารเพื่อค้นจากฐานข้อมูล หรือ <a href="#" onclick="openManual();return false" style="color:var(--accent)">เพิ่มเอง</a> · ค่าอ้างอิงกรมอนามัย/แหล่งไทย (โดยประมาณ ±10-30%) ปรับได้ที่ "เมนูของฉัน"</div>
+      <button class="btn ghost sm" onclick="document.getElementById('foodPhoto').click()" style="margin-top:10px">📷 ถ่ายรูปอาหารให้ AI ช่วยคำนวณ</button>
+      <input type="file" id="foodPhoto" accept="image/*" capture="environment" style="display:none" onchange="analyzePhoto(event)">
+      <div id="aiStatus" class="hint" style="display:none; margin-top:8px"></div>
       <div id="manualBox" style="display:none; margin-top:10px">
         <div class="add-row" style="margin-bottom:8px">
           <input id="mName" placeholder="ชื่ออาหาร" style="flex:2">
@@ -282,6 +285,22 @@
         <div class="hint" id="rNote"></div>
       </div>
     </div>
+    <div class="card">
+      <h2><span class="em">🤖</span> ถ่ายรูปคำนวณแคล (AI)</h2>
+      <div class="hint" style="margin:0 0 12px">ใส่ Anthropic API key ของคุณเอง เพื่อให้ปุ่ม "📷 ถ่ายรูป" ในแท็บ 🔥 วิเคราะห์รูปอาหารได้ · คีย์เก็บในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่อื่นนอกจาก Anthropic และไม่รวมอยู่ในไฟล์ backup</div>
+      <label>Anthropic API key (ขึ้นต้น sk-ant-...)</label>
+      <input id="aiKey" type="password" placeholder="sk-ant-..." autocomplete="off" style="margin-bottom:10px">
+      <label>โมเดล</label>
+      <select id="aiModel" style="margin-bottom:12px">
+        <option value="claude-haiku-4-5">Haiku 4.5 — ถูกสุด (แนะนำ, พอสำหรับงานนี้)</option>
+        <option value="claude-sonnet-5">Sonnet 5 — สมดุล</option>
+        <option value="claude-opus-4-8">Opus 4.8 — แม่นสุด/แพงสุด</option>
+      </select>
+      <button class="btn" onclick="saveAiSettings()">บันทึกคีย์</button>
+      <div class="hint" id="aiKeyState" style="margin-top:8px"></div>
+      <div class="hint">ขอ API key ได้ที่ <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--accent)">console.anthropic.com</a> · ค่าใช้จ่ายจ่ายตามใช้จริง (รูปละไม่กี่สตางค์ด้วย Haiku) · ⚠️ AI ประเมินคร่าวๆ ควรตรวจ/แก้ก่อนบันทึก</div>
+    </div>
+
     <div class="card">
       <h2><span class="em">🍜</span> เมนูของฉัน</h2>
       <div class="hint" style="margin:0 0 12px">เพิ่ม/แก้เมนูเอง (เช่น ปรับให้ตรงร้านที่กินประจำ) จะขึ้นบนสุดในช่องค้นหา พร้อม ⭐</div>
@@ -464,10 +483,10 @@ function load(){
     let old=JSON.parse(localStorage.getItem('cdt_v1'));
     if(old) return migrate(old);
   }catch(e){}
-  return {profile:null, days:{}, weights:[], customFoods:[]};
+  return {profile:null, days:{}, weights:[], customFoods:[], recentFoods:[]};
 }
 function migrate(d){
-  d.profile=d.profile||null; d.days=d.days||{}; d.weights=d.weights||[]; d.customFoods=d.customFoods||[];
+  d.profile=d.profile||null; d.days=d.days||{}; d.weights=d.weights||[]; d.customFoods=d.customFoods||[]; d.recentFoods=d.recentFoods||[];
   for(const k in d.days){ const dd=d.days[k]; dd.foods=(dd.foods||[]).map(f=>({name:f.name,k:f.k,p:f.p||0,c:f.c||0,f:f.f||0})); dd.ex=dd.ex||[]; dd.water=dd.water||0; }
   return d;
 }
@@ -572,22 +591,37 @@ function shiftDay(n){
 let searchCat='ทั้งหมด';
 let SR=[]; // ผลค้นหาปัจจุบัน
 function allFoods(){
-  return [
-    ...(DB.customFoods||[]).map(c=>({name:c.name,k:c.k,p:c.p||0,c:c.c||0,f:c.f||0,cat:c.cat||'อื่นๆ',custom:true})),
-    ...FOODS.map(a=>({name:a[0],k:a[1],p:a[2],c:a[3],f:a[4],cat:a[5],custom:false}))
-  ];
+  const recents=(DB.recentFoods||[]).map(r=>({name:r.name,k:r.k,p:r.p||0,c:r.c||0,f:r.f||0,cat:r.cat||'อื่นๆ',recent:true}));
+  const customs=(DB.customFoods||[]).map(c=>({name:c.name,k:c.k,p:c.p||0,c:c.c||0,f:c.f||0,cat:c.cat||'อื่นๆ',custom:true}));
+  const builtin=FOODS.map(a=>({name:a[0],k:a[1],p:a[2],c:a[3],f:a[4],cat:a[5]}));
+  const seen=new Set(), out=[];
+  for(const f of [...recents,...customs,...builtin]){ const key=f.name.toLowerCase(); if(seen.has(key)) continue; seen.add(key); out.push(f); }
+  return out;
 }
 function onSearch(){
   const q=$('foodSearch').value.trim().toLowerCase();
   let list=allFoods().filter(f=> (searchCat==='ทั้งหมด'||f.cat===searchCat) && f.name.toLowerCase().includes(q));
-  if(!q && searchCat==='ทั้งหมด'){ const cust=list.filter(f=>f.custom); list=[...cust, ...list.filter(f=>!f.custom).slice(0,8)]; }
-  SR=list.slice(0,50);
+  if(!q && searchCat==='ทั้งหมด'){
+    const recent=list.filter(f=>f.recent);
+    const cust=list.filter(f=>f.custom).slice(0,5);
+    const rest=list.filter(f=>!f.recent&&!f.custom).slice(0,8);
+    list=[...recent, ...cust, ...rest];
+  }
+  SR=list.slice(0,60);
   const box=$('results');
   const cats=`<div class="catrow" style="padding:8px 10px 4px">`+CATS.map(c=>`<button class="${c===searchCat?'on':''}" onclick="setCat(event,'${c}')">${c}</button>`).join('')+`</div>`;
   const rows=SR.map((f,i)=>
-    `<div class="r" onclick="pickResult(${i})"><div class="rn">${f.custom?'⭐ ':''}${f.name}<small>P ${f.p} · C ${f.c} · F ${f.f} g</small></div><div class="rk">${f.k} kcal</div></div>`
-  ).join('') || `<div class="empty" style="padding:14px">ไม่พบ — <a href="#" onclick="openManual();hideResults();return false" style="color:var(--accent)">เพิ่มเอง</a></div>`;
-  box.innerHTML=cats+rows; box.style.display='block';
+    `<div class="r" onclick="pickResult(${i})"><div class="rn">${f.recent?'🕘 ':f.custom?'⭐ ':''}${f.name}<small>P ${f.p} · C ${f.c} · F ${f.f} g</small></div><div class="rk">${f.k} kcal</div></div>`
+  ).join('');
+  const qraw=$('foodSearch').value.trim();
+  let ai='';
+  if(qraw.length>=2){
+    ai = getAiKey()
+      ? `<div class="r" onclick="aiLookup()" style="background:rgba(74,222,128,.08)"><div class="rn">🤖 หา "<b>${qraw}</b>" ด้วย AI<small>เติมแคล/โปรตีน/คาร์บ/ไขมัน อัตโนมัติ</small></div><div class="rk">→</div></div>`
+      : (SR.length? '' : `<div class="empty" style="padding:14px">ไม่พบ — <a href="#" onclick="openManual();hideResults();return false" style="color:var(--accent)">เพิ่มเอง</a> หรือใส่ API key เพื่อใช้ AI ค้นหา</div>`);
+  }
+  box.innerHTML=cats+rows+ai || (cats+`<div class="empty" style="padding:14px">พิมพ์เพื่อค้นหา</div>`);
+  box.style.display='block';
 }
 function setCat(e,c){ e.stopPropagation(); searchCat=c; onSearch(); }
 function hideResults(){ const b=$('results'); if(b) b.style.display='none'; }
@@ -597,13 +631,50 @@ function pickResult(i){
   if(qtyStr===null) return;
   const q=parseFloat(qtyStr)||1;
   dayData(cur).foods.push({name: q!==1?`${f.name} ×${q}`:f.name, k:f.k*q, p:f.p*q, c:f.c*q, f:f.f*q});
-  save(); $('foodSearch').value=''; hideResults(); renderToday();
+  recordRecent(f); save(); $('foodSearch').value=''; hideResults(); renderToday();
+}
+/* จำอาหารที่เคยเพิ่ม (ต่อ 1 หน่วย) */
+function recordRecent(it){
+  if(!it||!it.name) return;
+  DB.recentFoods=DB.recentFoods||[];
+  const key=it.name.toLowerCase();
+  DB.recentFoods=DB.recentFoods.filter(r=>r.name.toLowerCase()!==key);
+  DB.recentFoods.unshift({name:it.name,k:Math.round(it.k||0),p:it.p||0,c:it.c||0,f:it.f||0,cat:it.cat||'อื่นๆ'});
+  DB.recentFoods=DB.recentFoods.slice(0,60);
+}
+/* AI ค้นหาอาหารที่ไม่มีในฐานข้อมูล → เติมแคล/มาโครอัตโนมัติ */
+async function aiLookup(){
+  const name=$('foodSearch').value.trim(); if(name.length<2) return;
+  if(!getAiKey()){ alert('ต้องใส่ API key ก่อน (แท็บ 🧮 การ์ด "🤖 ถ่ายรูปคำนวณแคล")'); go('profile'); return; }
+  const box=$('results'); box.style.display='block';
+  box.innerHTML='<div class="empty" style="padding:16px">🤖 กำลังหา "'+name+'" ด้วย AI...</div>';
+  try{
+    const it=await callFoodLookup(name,getAiKey(),getAiModel());
+    dayData(cur).foods.push({name:it.name,k:it.k,p:it.p,c:it.c,f:it.f});
+    recordRecent(it); save();
+    $('foodSearch').value=''; hideResults(); renderToday();
+  }catch(err){ box.innerHTML='<div class="empty" style="padding:16px"><span class="warn">❌ '+(err.message||'ผิดพลาด')+'</span></div>'; }
+}
+async function callFoodLookup(name,key,model){
+  const prompt='ประเมินคุณค่าทางโภชนาการของอาหาร/เมนู "'+name+'" ต่อ 1 หน่วยบริโภคมาตรฐานของคนไทย (1 จาน/ถ้วย/แก้ว/ชิ้น ตามปกติ). ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นหรือ markdown: {"name":"ชื่อพร้อมขนาดหน่วยสั้นๆ","kcal":ตัวเลข,"p":กรัมโปรตีน,"c":กรัมคาร์บ,"f":กรัมไขมัน}. ถ้าไม่รู้จักอาหารนี้ตอบ {"kcal":0}';
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model,max_tokens:400,messages:[{role:'user',content:prompt}]})});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok||j.type==='error') throw new Error((j.error&&j.error.message)||('เชื่อมต่อไม่สำเร็จ (HTTP '+res.status+')'));
+  if(j.stop_reason==='refusal') throw new Error('AI ปฏิเสธคำขอนี้');
+  const tb=(j.content||[]).find(b=>b.type==='text');
+  let txt=((tb&&tb.text)||'').trim().replace(/^```(json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  let p; try{ p=JSON.parse(txt); }catch(_){ throw new Error('อ่านผลลัพธ์ AI ไม่ได้'); }
+  const k=Math.round(+p.kcal||0); if(!k) throw new Error('ไม่พบข้อมูลอาหารนี้ ลองพิมพ์ชื่อให้ชัดขึ้น');
+  return {name:String(p.name||name),k,p:+p.p||0,c:+p.c||0,f:+p.f||0,cat:'อื่นๆ'};
 }
 function openManual(){ const m=$('manualBox'); m.style.display = m.style.display==='none'?'block':'none'; if(m.style.display==='block')$('mName').focus(); }
 function addManual(){
   const name=$('mName').value.trim(); const k=+$('mK').value;
   if(!name||!k) return;
-  dayData(cur).foods.push({name,k,p:+$('mP').value||0,c:+$('mC').value||0,f:+$('mF').value||0});
+  const it={name,k,p:+$('mP').value||0,c:+$('mC').value||0,f:+$('mF').value||0};
+  dayData(cur).foods.push(it); recordRecent({...it,cat:'อื่นๆ'});
   save(); ['mName','mK','mP','mC','mF'].forEach(i=>$(i).value=''); $('mName').focus(); renderToday();
 }
 function delFood(i){ dayData(cur).foods.splice(i,1); save(); renderToday(); }
@@ -640,6 +711,82 @@ function renderCustom(){
     `<button class="del" onclick="delCustom(${i})">✕</button></div>`
   ).join('') : '<div class="empty">ยังไม่มีเมนูของฉัน</div>';
 }
+
+/* ---- AI photo → calories (BYOK) ---- */
+const AI_KEY_LS='cdt_ai_key', AI_MODEL_LS='cdt_ai_model';
+const getAiKey=()=>localStorage.getItem(AI_KEY_LS)||'';
+const getAiModel=()=>localStorage.getItem(AI_MODEL_LS)||'claude-haiku-4-5';
+function saveAiSettings(){
+  const k=$('aiKey').value.trim();
+  if(k) localStorage.setItem(AI_KEY_LS,k); else localStorage.removeItem(AI_KEY_LS);
+  localStorage.setItem(AI_MODEL_LS,$('aiModel').value);
+  initAiSettings();
+  alert('บันทึกแล้ว ✓ ไปแท็บ 🔥 แล้วกดปุ่ม 📷 ได้เลย');
+}
+function initAiSettings(){
+  if(!$('aiKey')) return;
+  const k=getAiKey(); $('aiKey').value=k; $('aiModel').value=getAiModel();
+  $('aiKeyState').innerHTML = k? '<span class="accent">● มีคีย์แล้ว — พร้อมใช้ปุ่ม 📷</span>' : 'ยังไม่ได้ใส่คีย์';
+}
+function resizeImage(file,maxDim){
+  return new Promise((res,rej)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{ URL.revokeObjectURL(url);
+      let w=img.width,h=img.height; const s=Math.min(1,maxDim/Math.max(w,h));
+      w=Math.round(w*s); h=Math.round(h*s);
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res({data:c.toDataURL('image/jpeg',0.85).split(',')[1], media:'image/jpeg'});
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('โหลดรูปไม่ได้')); };
+    img.src=url;
+  });
+}
+async function analyzePhoto(e){
+  const file=e.target.files[0]; e.target.value=''; if(!file) return;
+  if(!getAiKey()){ alert('ยังไม่ได้ใส่ API key — ไปที่แท็บ 🧮 การ์ด "🤖 ถ่ายรูปคำนวณแคล"'); go('profile'); return; }
+  const st=$('aiStatus'); st.style.display='block'; st.innerHTML='🔄 กำลังย่อรูป...';
+  try{
+    const {data,media}=await resizeImage(file,1024);
+    st.innerHTML='🔄 กำลังให้ AI วิเคราะห์รูป... (สักครู่)';
+    const {items,note}=await callVision(data,media,getAiKey(),getAiModel());
+    renderAiResults(items,note);
+  }catch(err){ st.innerHTML='<span class="warn">❌ '+(err.message||'เกิดข้อผิดพลาด')+'</span>'; }
+}
+async function callVision(data,media,key,model){
+  const prompt='วิเคราะห์รูปอาหารนี้ ระบุเมนูแต่ละอย่างที่เห็น พร้อมประเมินแคลอรี่และสารอาหารตาม "ปริมาณที่เห็นจริงในรูป" (ไม่ใช่ต่อ 100g). ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นหรือ markdown. รูปแบบ: {"items":[{"name":"ชื่อเมนูภาษาไทย","kcal":ตัวเลข,"p":กรัมโปรตีน,"c":กรัมคาร์บ,"f":กรัมไขมัน}],"note":"หมายเหตุสั้นๆถ้ามี"}. ถ้าไม่ใช่รูปอาหารตอบ {"items":[],"note":"ไม่พบอาหารในรูป"}';
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model,max_tokens:1024,messages:[{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:media,data}},
+      {type:'text',text:prompt}
+    ]}]})
+  });
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok||j.type==='error'){ throw new Error((j.error&&j.error.message)||('เชื่อมต่อไม่สำเร็จ (HTTP '+res.status+')')); }
+  if(j.stop_reason==='refusal') throw new Error('AI ปฏิเสธการวิเคราะห์รูปนี้');
+  const tb=(j.content||[]).find(b=>b.type==='text');
+  let txt=((tb&&tb.text)||'').trim().replace(/^```(json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  let parsed; try{ parsed=JSON.parse(txt); }catch(_){ throw new Error('อ่านผลลัพธ์ AI ไม่ได้ ลองใหม่อีกครั้ง'); }
+  const items=(parsed.items||[]).map(it=>({name:String(it.name||'อาหาร'),k:Math.round(+it.kcal||0),p:+it.p||0,c:+it.c||0,f:+it.f||0})).filter(it=>it.k>0);
+  return {items,note:parsed.note||''};
+}
+let AISR=[];
+function renderAiResults(items,note){
+  AISR=items; const st=$('aiStatus'); st.style.display='block';
+  if(!items.length){ st.innerHTML='<span class="warn">🤖 '+(note||'ไม่พบอาหารในรูป')+'</span>'; return; }
+  let html='<div style="margin-bottom:4px">🤖 <b>AI เจอ '+items.length+' รายการ</b> — แตะชื่อเพื่อแก้ หรือกด ＋ เพิ่ม</div><div class="list">';
+  html+=items.map((it,i)=>
+    '<div class="item"><span class="name" style="cursor:pointer" onclick="editAiItem('+i+')">'+it.name+'<small>P '+fmt(it.p)+' · C '+fmt(it.c)+' · F '+fmt(it.f)+' g · แตะเพื่อแก้</small></span><span class="kcal">'+fmt(it.k)+'</span><button class="del" onclick="addAiItem('+i+')" style="color:var(--accent);font-size:20px">＋</button></div>'
+  ).join('')+'</div>';
+  html+='<button class="btn sm" onclick="addAllAi()" style="margin-top:10px">＋ เพิ่มทั้งหมดลงวันนี้</button>';
+  if(note) html+='<div class="hint" style="margin-top:6px">📝 '+note+'</div>';
+  st.innerHTML=html;
+}
+function addAiItem(i){ const it=AISR[i]; if(!it)return; dayData(cur).foods.push({name:it.name,k:it.k,p:it.p,c:it.c,f:it.f}); recordRecent(it); save(); AISR.splice(i,1); renderAiResults(AISR,''); renderToday(); }
+function addAllAi(){ AISR.forEach(it=>{ dayData(cur).foods.push({name:it.name,k:it.k,p:it.p,c:it.c,f:it.f}); recordRecent(it); }); save(); AISR=[]; $('aiStatus').innerHTML='<span class="accent">✅ เพิ่มลงบันทึกวันนี้แล้ว</span>'; renderToday(); }
+function editAiItem(i){ const it=AISR[i]; if(!it)return; $('mName').value=it.name; $('mK').value=it.k; $('mP').value=it.p; $('mC').value=it.c; $('mF').value=it.f; $('manualBox').style.display='block'; AISR.splice(i,1); renderAiResults(AISR,''); $('mName').focus(); }
 
 /* ---- exercise ---- */
 function addExPreset(name,k){ dayData(cur).ex.push({name,kcal:k}); save(); renderToday(); }
@@ -802,7 +949,7 @@ function importData(e){
   r.onload=()=>{ try{ const o=JSON.parse(r.result); DB=migrate(o); save(); location.reload(); }catch(x){ alert('ไฟล์ไม่ถูกต้อง'); } };
   r.readAsText(f);
 }
-function resetAll(){ if(confirm('ล้างข้อมูลทั้งหมด? ไม่สามารถกู้คืนได้')){ localStorage.removeItem(KEY); localStorage.removeItem('cdt_v1'); location.reload(); } }
+function resetAll(){ if(confirm('ล้างข้อมูลทั้งหมด? ไม่สามารถกู้คืนได้')){ localStorage.removeItem(KEY); localStorage.removeItem('cdt_v1'); localStorage.removeItem(AI_KEY_LS); localStorage.removeItem(AI_MODEL_LS); location.reload(); } }
 
 /* ============ PWA ============ */
 let deferredPrompt=null;
@@ -813,7 +960,7 @@ if('serviceWorker' in navigator){
 }
 
 /* ============ INIT ============ */
-initCFCat(); renderCustom();
+initCFCat(); renderCustom(); initAiSettings();
 if(DB.profile) showTDEE();
 renderToday();
 if(!DB.profile){ setTimeout(()=>go('profile'),200); }
