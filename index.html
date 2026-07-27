@@ -157,9 +157,6 @@
         <div class="results" id="results" style="display:none"></div>
       </div>
       <div class="hint">พิมพ์ชื่ออาหารเพื่อค้นจากฐานข้อมูล หรือ <a href="#" onclick="openManual();return false" style="color:var(--accent)">เพิ่มเอง</a> · ค่าอ้างอิงกรมอนามัย/แหล่งไทย (โดยประมาณ ±10-30%) ปรับได้ที่ "เมนูของฉัน"</div>
-      <button class="btn ghost sm" onclick="document.getElementById('foodPhoto').click()" style="margin-top:10px">📷 ถ่ายรูปอาหารให้ AI ช่วยคำนวณ</button>
-      <input type="file" id="foodPhoto" accept="image/*" capture="environment" style="display:none" onchange="analyzePhoto(event)">
-      <div id="aiStatus" class="hint" style="display:none; margin-top:8px"></div>
       <div id="manualBox" style="display:none; margin-top:10px">
         <div class="add-row" style="margin-bottom:8px">
           <input id="mName" placeholder="ชื่ออาหาร" style="flex:2">
@@ -286,8 +283,8 @@
       </div>
     </div>
     <div class="card">
-      <h2><span class="em">🤖</span> ถ่ายรูปคำนวณแคล (AI)</h2>
-      <div class="hint" style="margin:0 0 12px">ใส่ Anthropic API key ของคุณเอง เพื่อให้ปุ่ม "📷 ถ่ายรูป" ในแท็บ 🔥 วิเคราะห์รูปอาหารได้ · คีย์เก็บในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่อื่นนอกจาก Anthropic และไม่รวมอยู่ในไฟล์ backup</div>
+      <h2><span class="em">🤖</span> ค้นหาอาหารด้วย AI</h2>
+      <div class="hint" style="margin:0 0 12px">ใส่ Anthropic API key ของคุณเอง เพื่อให้ช่องค้นหา (แท็บ 🔥) มีปุ่ม "🤖 หา ... ด้วย AI" ที่เติมแคล/โปรตีน/คาร์บ/ไขมันของอาหารที่ไม่มีในฐานข้อมูลให้อัตโนมัติ · คีย์เก็บในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่อื่นนอกจาก Anthropic และไม่รวมอยู่ในไฟล์ backup</div>
       <label>Anthropic API key (ขึ้นต้น sk-ant-...)</label>
       <input id="aiKey" type="password" placeholder="sk-ant-..." autocomplete="off" style="margin-bottom:10px">
       <label>โมเดล</label>
@@ -298,7 +295,7 @@
       </select>
       <button class="btn" onclick="saveAiSettings()">บันทึกคีย์</button>
       <div class="hint" id="aiKeyState" style="margin-top:8px"></div>
-      <div class="hint">ขอ API key ได้ที่ <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--accent)">console.anthropic.com</a> · ค่าใช้จ่ายจ่ายตามใช้จริง (รูปละไม่กี่สตางค์ด้วย Haiku) · ⚠️ AI ประเมินคร่าวๆ ควรตรวจ/แก้ก่อนบันทึก</div>
+      <div class="hint">ขอ API key ได้ที่ <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--accent)">console.anthropic.com</a> · ค่าใช้จ่ายจ่ายตามใช้จริง (ครั้งละไม่กี่สตางค์ด้วย Haiku) ·⚠️ AI ประเมินคร่าวๆ ควรตรวจ/แก้ก่อนบันทึก</div>
     </div>
 
     <div class="card">
@@ -645,7 +642,7 @@ function recordRecent(it){
 /* AI ค้นหาอาหารที่ไม่มีในฐานข้อมูล → เติมแคล/มาโครอัตโนมัติ */
 async function aiLookup(){
   const name=$('foodSearch').value.trim(); if(name.length<2) return;
-  if(!getAiKey()){ alert('ต้องใส่ API key ก่อน (แท็บ 🧮 การ์ด "🤖 ถ่ายรูปคำนวณแคล")'); go('profile'); return; }
+  if(!getAiKey()){ alert('ต้องใส่ API key ก่อน (แท็บ 🧮 การ์ด "🤖 ค้นหาอาหารด้วย AI")'); go('profile'); return; }
   const box=$('results'); box.style.display='block';
   box.innerHTML='<div class="empty" style="padding:16px">🤖 กำลังหา "'+name+'" ด้วย AI...</div>';
   try{
@@ -721,72 +718,13 @@ function saveAiSettings(){
   if(k) localStorage.setItem(AI_KEY_LS,k); else localStorage.removeItem(AI_KEY_LS);
   localStorage.setItem(AI_MODEL_LS,$('aiModel').value);
   initAiSettings();
-  alert('บันทึกแล้ว ✓ ไปแท็บ 🔥 แล้วกดปุ่ม 📷 ได้เลย');
+  alert('บันทึกแล้ว ✓ ไปแท็บ 🔥 พิมพ์ชื่ออาหารในช่องค้นหา แล้วกด "🤖 หา...ด้วย AI" ได้เลย');
 }
 function initAiSettings(){
   if(!$('aiKey')) return;
   const k=getAiKey(); $('aiKey').value=k; $('aiModel').value=getAiModel();
-  $('aiKeyState').innerHTML = k? '<span class="accent">● มีคีย์แล้ว — พร้อมใช้ปุ่ม 📷</span>' : 'ยังไม่ได้ใส่คีย์';
+  $('aiKeyState').innerHTML = k? '<span class="accent">● มีคีย์แล้ว — พร้อมใช้ค้นหาด้วย AI</span>' : 'ยังไม่ได้ใส่คีย์';
 }
-function resizeImage(file,maxDim){
-  return new Promise((res,rej)=>{
-    const img=new Image(); const url=URL.createObjectURL(file);
-    img.onload=()=>{ URL.revokeObjectURL(url);
-      let w=img.width,h=img.height; const s=Math.min(1,maxDim/Math.max(w,h));
-      w=Math.round(w*s); h=Math.round(h*s);
-      const c=document.createElement('canvas'); c.width=w; c.height=h;
-      c.getContext('2d').drawImage(img,0,0,w,h);
-      res({data:c.toDataURL('image/jpeg',0.85).split(',')[1], media:'image/jpeg'});
-    };
-    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('โหลดรูปไม่ได้')); };
-    img.src=url;
-  });
-}
-async function analyzePhoto(e){
-  const file=e.target.files[0]; e.target.value=''; if(!file) return;
-  if(!getAiKey()){ alert('ยังไม่ได้ใส่ API key — ไปที่แท็บ 🧮 การ์ด "🤖 ถ่ายรูปคำนวณแคล"'); go('profile'); return; }
-  const st=$('aiStatus'); st.style.display='block'; st.innerHTML='🔄 กำลังย่อรูป...';
-  try{
-    const {data,media}=await resizeImage(file,1024);
-    st.innerHTML='🔄 กำลังให้ AI วิเคราะห์รูป... (สักครู่)';
-    const {items,note}=await callVision(data,media,getAiKey(),getAiModel());
-    renderAiResults(items,note);
-  }catch(err){ st.innerHTML='<span class="warn">❌ '+(err.message||'เกิดข้อผิดพลาด')+'</span>'; }
-}
-async function callVision(data,media,key,model){
-  const prompt='วิเคราะห์รูปอาหารนี้ ระบุเมนูแต่ละอย่างที่เห็น พร้อมประเมินแคลอรี่และสารอาหารตาม "ปริมาณที่เห็นจริงในรูป" (ไม่ใช่ต่อ 100g). ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นหรือ markdown. รูปแบบ: {"items":[{"name":"ชื่อเมนูภาษาไทย","kcal":ตัวเลข,"p":กรัมโปรตีน,"c":กรัมคาร์บ,"f":กรัมไขมัน}],"note":"หมายเหตุสั้นๆถ้ามี"}. ถ้าไม่ใช่รูปอาหารตอบ {"items":[],"note":"ไม่พบอาหารในรูป"}';
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model,max_tokens:1024,messages:[{role:'user',content:[
-      {type:'image',source:{type:'base64',media_type:media,data}},
-      {type:'text',text:prompt}
-    ]}]})
-  });
-  const j=await res.json().catch(()=>({}));
-  if(!res.ok||j.type==='error'){ throw new Error((j.error&&j.error.message)||('เชื่อมต่อไม่สำเร็จ (HTTP '+res.status+')')); }
-  if(j.stop_reason==='refusal') throw new Error('AI ปฏิเสธการวิเคราะห์รูปนี้');
-  const tb=(j.content||[]).find(b=>b.type==='text');
-  let txt=((tb&&tb.text)||'').trim().replace(/^```(json)?\s*/i,'').replace(/\s*```$/,'').trim();
-  let parsed; try{ parsed=JSON.parse(txt); }catch(_){ throw new Error('อ่านผลลัพธ์ AI ไม่ได้ ลองใหม่อีกครั้ง'); }
-  const items=(parsed.items||[]).map(it=>({name:String(it.name||'อาหาร'),k:Math.round(+it.kcal||0),p:+it.p||0,c:+it.c||0,f:+it.f||0})).filter(it=>it.k>0);
-  return {items,note:parsed.note||''};
-}
-let AISR=[];
-function renderAiResults(items,note){
-  AISR=items; const st=$('aiStatus'); st.style.display='block';
-  if(!items.length){ st.innerHTML='<span class="warn">🤖 '+(note||'ไม่พบอาหารในรูป')+'</span>'; return; }
-  let html='<div style="margin-bottom:4px">🤖 <b>AI เจอ '+items.length+' รายการ</b> — แตะชื่อเพื่อแก้ หรือกด ＋ เพิ่ม</div><div class="list">';
-  html+=items.map((it,i)=>
-    '<div class="item"><span class="name" style="cursor:pointer" onclick="editAiItem('+i+')">'+it.name+'<small>P '+fmt(it.p)+' · C '+fmt(it.c)+' · F '+fmt(it.f)+' g · แตะเพื่อแก้</small></span><span class="kcal">'+fmt(it.k)+'</span><button class="del" onclick="addAiItem('+i+')" style="color:var(--accent);font-size:20px">＋</button></div>'
-  ).join('')+'</div>';
-  html+='<button class="btn sm" onclick="addAllAi()" style="margin-top:10px">＋ เพิ่มทั้งหมดลงวันนี้</button>';
-  if(note) html+='<div class="hint" style="margin-top:6px">📝 '+note+'</div>';
-  st.innerHTML=html;
-}
-function addAiItem(i){ const it=AISR[i]; if(!it)return; dayData(cur).foods.push({name:it.name,k:it.k,p:it.p,c:it.c,f:it.f}); recordRecent(it); save(); AISR.splice(i,1); renderAiResults(AISR,''); renderToday(); }
-function addAllAi(){ AISR.forEach(it=>{ dayData(cur).foods.push({name:it.name,k:it.k,p:it.p,c:it.c,f:it.f}); recordRecent(it); }); save(); AISR=[]; $('aiStatus').innerHTML='<span class="accent">✅ เพิ่มลงบันทึกวันนี้แล้ว</span>'; renderToday(); }
-function editAiItem(i){ const it=AISR[i]; if(!it)return; $('mName').value=it.name; $('mK').value=it.k; $('mP').value=it.p; $('mC').value=it.c; $('mF').value=it.f; $('manualBox').style.display='block'; AISR.splice(i,1); renderAiResults(AISR,''); $('mName').focus(); }
 
 /* ---- exercise ---- */
 function addExPreset(name,k){ dayData(cur).ex.push({name,kcal:k}); save(); renderToday(); }
