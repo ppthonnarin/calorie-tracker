@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ตัวช่วยหาลูกค้าอสังหาฯ | เชียงใหม่ ลำพูน ลำปาง</title>
+<style>
+  :root{
+    --bg:#0f1720; --panel:#17212b; --panel2:#1e2a36; --border:#2b3a47;
+    --text:#e8eef3; --muted:#93a4b4; --accent:#4fb0a3; --accent2:#e0a458;
+    --danger:#d9695f; --ok:#5cb87c; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Sarabun,Roboto,sans-serif;
+    background:var(--bg); color:var(--text); padding-bottom:70px;
+  }
+  header{
+    padding:18px 16px 14px; background:linear-gradient(135deg,#16323a,#1c2530);
+    border-bottom:1px solid var(--border);
+  }
+  header h1{margin:0; font-size:1.15rem;}
+  header p{margin:4px 0 0; color:var(--muted); font-size:0.82rem; line-height:1.4;}
+  .banner{
+    margin:12px 16px 0; padding:10px 12px; background:#2a2318; border:1px solid #4a3a1e;
+    border-radius:10px; font-size:0.78rem; color:#e3c98a; line-height:1.5;
+  }
+  main{padding:14px 16px 24px; max-width:760px; margin:0 auto;}
+  .tabs{
+    position:fixed; bottom:0; left:0; right:0; display:flex; background:var(--panel);
+    border-top:1px solid var(--border); z-index:20;
+  }
+  .tabs button{
+    flex:1; background:none; border:none; color:var(--muted); padding:10px 4px 8px;
+    font-size:0.72rem; display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .tabs button.active{color:var(--accent);}
+  .tabs button .ic{font-size:1.15rem;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px; margin-bottom:12px;
+  }
+  .card h3{margin:0 0 10px; font-size:0.95rem;}
+  .stat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px;}
+  .stat{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:12px; text-align:center;
+  }
+  .stat .num{font-size:1.5rem; font-weight:700; color:var(--accent);}
+  .stat .lbl{font-size:0.72rem; color:var(--muted); margin-top:2px;}
+  label{display:block; font-size:0.78rem; color:var(--muted); margin:8px 0 4px;}
+  input,select,textarea{
+    width:100%; padding:9px 10px; border-radius:9px; border:1px solid var(--border);
+    background:var(--panel2); color:var(--text); font-size:0.88rem; font-family:inherit;
+  }
+  textarea{resize:vertical; min-height:70px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .btn{
+    border:none; border-radius:9px; padding:9px 14px; font-size:0.85rem; font-weight:600;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--accent); color:#08201c;}
+  .btn-secondary{background:var(--panel2); color:var(--text); border:1px solid var(--border);}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid var(--danger);}
+  .btn-small{padding:6px 10px; font-size:0.75rem;}
+  .btn-row{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .list-item{
+    background:var(--panel2); border:1px solid var(--border); border-radius:11px;
+    padding:11px; margin-bottom:9px;
+  }
+  .list-item .top{display:flex; justify-content:space-between; gap:8px; align-items:flex-start;}
+  .list-item .title{font-weight:600; font-size:0.9rem;}
+  .list-item .meta{color:var(--muted); font-size:0.76rem; margin-top:3px; line-height:1.5;}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.68rem;
+    font-weight:600; margin-left:6px;
+  }
+  .badge-available{background:#173a2c; color:var(--ok);}
+  .badge-reserved{background:#3a3317; color:var(--accent2);}
+  .badge-sold{background:#3a1f1c; color:var(--danger);}
+  .badge-new{background:#173044; color:#6fb8e0;}
+  .badge-contacted{background:#3a3317; color:var(--accent2);}
+  .badge-interested{background:#173a2c; color:var(--ok);}
+  .badge-closed{background:#173a2c; color:var(--ok);}
+  .badge-lost{background:#3a1f1c; color:var(--danger);}
+  .tag{
+    display:inline-block; background:#12303a; color:var(--accent); border-radius:20px;
+    padding:2px 8px; font-size:0.68rem; margin:2px 4px 0 0;
+  }
+  .empty{color:var(--muted); text-align:center; padding:24px 10px; font-size:0.85rem;}
+  .score{
+    display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px;
+    border-radius:50%; font-weight:700; font-size:0.85rem; flex-shrink:0;
+  }
+  .score-high{background:#173a2c; color:var(--ok);}
+  .score-mid{background:#3a3317; color:var(--accent2);}
+  .score-low{background:#2b3a47; color:var(--muted);}
+  .match-block{margin-bottom:16px;}
+  .match-block .lead-head{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+  }
+  .match-row{
+    display:flex; gap:10px; align-items:center; background:var(--panel2);
+    border:1px solid var(--border); border-radius:11px; padding:10px; margin-bottom:8px;
+  }
+  .match-row .info{flex:1; min-width:0;}
+  .match-row .info .t{font-size:0.85rem; font-weight:600;}
+  .match-row .info .m{font-size:0.74rem; color:var(--muted); margin-top:2px;}
+  .toolbar{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
+  .section-title{font-size:1rem; font-weight:700; margin:2px 0 12px;}
+  .hidden{display:none !important;}
+  .toast{
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1e2a36;
+    border:1px solid var(--accent); color:var(--text); padding:9px 16px; border-radius:24px;
+    font-size:0.8rem; z-index:50; opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .toast.show{opacity:1;}
+  .parsed-preview{
+    background:var(--panel2); border:1px dashed var(--border); border-radius:10px;
+    padding:10px; margin-top:10px; font-size:0.78rem; color:var(--muted); line-height:1.7;
+  }
+  select[multiple]{min-height:78px;}
+  .field-hint{font-size:0.7rem; color:var(--muted); margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏠 ตัวช่วยหาลูกค้าอสังหาฯ</h1>
+  <p>จัดการทรัพย์ในมือ + ลูกค้าที่สนใจซื้อบ้าน/ที่ดิน/คอนโด ในเชียงใหม่ ลำพูน ลำปาง แล้วจับคู่ให้อัตโนมัติ</p>
+</header>
+
+<div class="banner">
+  ⚠️ เครื่องมือนี้ <b>ไม่ได้ดึงข้อมูลจาก Facebook/Line/TikTok อัตโนมัติ</b> (ติดข้อจำกัดสิทธิ์การเข้าถึง API ของแพลตฟอร์ม)
+  วิธีใช้คือคัดลอกข้อความโพสต์/คอมเมนต์ที่เจอจาก Social มาวางในแท็บ "ลูกค้า" ระบบจะช่วยแยกความต้องการ (ประเภท/ทำเล/งบ) ให้อัตโนมัติ
+</div>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="view active">
+    <div class="section-title">แดชบอร์ด</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="num" id="stat-listings">0</div><div class="lbl">ทรัพย์ในมือ</div></div>
+      <div class="stat"><div class="num" id="stat-available">0</div><div class="lbl">ว่างขาย/ให้เช่า</div></div>
+      <div class="stat"><div class="num" id="stat-leads">0</div><div class="lbl">ลูกค้าที่สนใจ</div></div>
+      <div class="stat"><div class="num" id="stat-newleads">0</div><div class="lbl">ลีดใหม่ (ยังไม่ติดต่อ)</div></div>
+    </div>
+    <div class="card">
+      <h3>🔥 คู่ที่น่าติดต่อที่สุดตอนนี้</h3>
+      <div id="dashboard-top-matches"></div>
+    </div>
+  </section>
+
+  <!-- LISTINGS -->
+  <section id="view-listings" class="view">
+    <div class="section-title">ทรัพย์ของฉัน (บ้าน / ที่ดิน / คอนโด)</div>
+    <div class="toolbar">
+      <button class="btn btn-primary btn-small" onclick="toggleForm('listing-form')">+ เพิ่มทรัพย์ใหม่</button>
+    </div>
+
+    <div id="listing-form" class="card hidden">
+      <h3 id="listing-form-title">เพิ่มทรัพย์ใหม่</h3>
+      <input type="hidden" id="l-id">
+      <label>ชื่อรายการ</label>
+      <input id="l-title" placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านสายลมจอย">
+      <div class="row2">
+        <div>
+          <label>ประเภท</label>
+          <select id="l-type" onchange="onListingTypeChange()">
+            <option>บ้าน</option><option>ที่ดิน</option><option>คอนโด</option><option>ทาวน์โฮม</option>
+          </select>
+        </div>
+        <div>
+          <label>สถานะ</label>
+          <select id="l-status">
+            <option value="available">ว่าง/พร้อมขาย</option>
+            <option value="reserved">มีคนจอง</option>
+            <option value="sold">ขายแล้ว</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>จังหวัด</label>
+          <select id="l-province" onchange="refreshDistrictOptions('l-district','l-province')">
+            <option>เชียงใหม่</option><option>ลำพูน</option><option>ลำปาง</option><option>อื่นๆ</option>
+          </select>
+        </div>
+        <div>
+          <label>อำเภอ</label>
+          <input id="l-district" list="district-list-l" placeholder="เช่น สันทราย">
+          <datalist id="district-list-l"></datalist>
+        </div>
+      </div>
+      <label>ราคา (บาท)</label>
+      <input id="l-price" type="number" placeholder="เช่น 3200000">
+      <div id="l-house-fields" class="row2">
+        <div><label>พื้นที่ใช้สอย (ตร.ม.)</label><input id="l-sqm" type="number"></div>
+        <div><label>ห้องนอน / ห้องน้ำ</label>
+          <div style="display:flex; gap:6px;">
+            <input id="l-bed" type="number" placeholder="นอน">
+            <input id="l-bath" type="number" placeholder="น้ำ">
+          </div>
+        </div>
+      </div>
+      <div id="l-land-fields" class="row2 hidden">
+        <div><label>ไร่-งาน-วา</label>
+          <div style="display:flex; gap:6px;">
+            <input id="l-rai" type="number" placeholder="ไร่">
+            <input id="l-ngan" type="number" placeholder="งาน">
+            <input id="l-wa" type="number" placeholder="วา">
+          </div>
+        </div>
+        <div><label>เอกสารสิทธิ์</label>
+          <select id="l-doctype">
+            <option>โฉนด</option><option>นส.3ก</option><option>นส.3</option><option>อื่นๆ</option>
+          </select>
+        </div>
+      </div>
+      <label>รายละเอียดเพิ่มเติม</label>
+      <textarea id="l-desc" placeholder="จุดเด่น เช่น ใกล้ถนนใหญ่ วิวดอย เดินทางสะดวก..."></textarea>
+      <label>ช่องทางติดต่อ (สำหรับใส่ในข้อความนำเสนอ)</label>
+      <input id="l-contact" placeholder="เช่น โทร 08x-xxx-xxxx หรือ Line: xxxx">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveListing()">บันทึกทรัพย์</button>
+        <button class="btn btn-secondary" onclick="toggleForm('listing-form', true)">ยกเลิก</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <select id="listing-filter-status" onchange="renderListings()" style="max-width:180px;">
+        <option value="">ทุกสถานะ</option>
+        <option value="available">ว่าง/พร้อมขาย</option>
+        <option value="reserved">มีคนจอง</option>
+        <option value="sold">ขายแล้ว</option>
+      </select>
+    </div>
+    <div id="listings-container"></div>
+  </section>
+
+  <!-- LEADS -->
+  <section id="view-leads" class="view">
+    <div class="section-title">ลูกค้าที่สนใจ (ลีด)</div>
+    <div class="toolbar">
+      <button class="btn btn-primary btn-small" onclick="toggleForm('lead-form')">+ เพิ่มลูกค้าใหม่</button>
+    </div>
+
+    <div id="lead-form" class="card hidden">
+      <h3 id="lead-form-title">เพิ่มลูกค้าใหม่</h3>
+      <input type="hidden" id="d-id">
+      <label>วางข้อความจากโพสต์/คอมเมนต์ใน Social (จะช่วยแยกความต้องการให้อัตโนมัติ)</label>
+      <textarea id="d-rawtext" placeholder="เช่น: หาบ้านเดี่ยวแถวสันทราย เชียงใหม่ งบ 3-4 ล้าน พร้อมอยู่ ติดต่อไลน์ @หมูแดง" oninput="autoParseLead()"></textarea>
+      <div id="d-parsed-preview" class="parsed-preview hidden"></div>
+
+      <label>ชื่อลูกค้า</label>
+      <input id="d-name" placeholder="ชื่อ หรือชื่อเล่น/username">
+      <div class="row2">
+        <div>
+          <label>ช่องทางติดต่อ</label>
+          <input id="d-contact" placeholder="เบอร์ / Line ID / FB">
+        </div>
+        <div>
+          <label>พบจากช่องทาง</label>
+          <select id="d-source">
+            <option>Facebook</option><option>Line</option><option>TikTok</option>
+            <option>Instagram</option><option>คนรู้จักแนะนำ</option><option>อื่นๆ</option>
+          </select>
+        </div>
+      </div>
+
+      <label>ประเภทที่สนใจ (เลือกได้หลายอัน)</label>
+      <select id="d-types" multiple>
+        <option>บ้าน</option><option>ที่ดิน</option><option>คอนโด</option><option>ทาวน์โฮม</option>
+      </select>
+
+      <label>จังหวัดที่สนใจ (เลือกได้หลายอัน)</label>
+      <select id="d-provinces" multiple onchange="refreshLeadDistrictOptions()">
+        <option>เชียงใหม่</option><option>ลำพูน</option><option>ลำปาง</option>
+      </select>
+
+      <label>อำเภอที่สนใจ (ถ้ามี, คั่นด้วย comma)</label>
+      <input id="d-districts" list="district-list-d" placeholder="เช่น สันทราย, แม่ริม">
+      <datalist id="district-list-d"></datalist>
+
+      <div class="row2">
+        <div><label>งบต่ำสุด (บาท)</label><input id="d-budget-min" type="number"></div>
+        <div><label>งบสูงสุด (บาท)</label><input id="d-budget-max" type="number"></div>
+      </div>
+
+      <label>สถานะ</label>
+      <select id="d-status">
+        <option value="new">ลีดใหม่</option>
+        <option value="contacted">ติดต่อแล้ว</option>
+        <option value="interested">สนใจ/นัดชม</option>
+        <option value="closed">ปิดการขายแล้ว</option>
+        <option value="lost">ไม่สนใจแล้ว</option>
+      </select>
+
+      <label>บันทึกเพิ่มเติม</label>
+      <textarea id="d-notes" placeholder="รายละเอียดอื่นๆ ที่คุยกันไว้"></textarea>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveLead()">บันทึกลูกค้า</button>
+        <button class="btn btn-secondary" onclick="toggleForm('lead-form', true)">ยกเลิก</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <select id="lead-filter-status" onchange="renderLeads()" style="max-width:180px;">
+        <option value="">ทุกสถานะ</option>
+        <option value="new">ลีดใหม่</option>
+        <option value="contacted">ติดต่อแล้ว</option>
+        <option value="interested">สนใจ/นัดชม</option>
+        <option value="closed">ปิดการขายแล้ว</option>
+        <option value="lost">ไม่สนใจแล้ว</option>
+      </select>
+    </div>
+    <div id="leads-container"></div>
+  </section>
+
+  <!-- MATCHES -->
+  <section id="view-matches" class="view">
+    <div class="section-title">จับคู่ลูกค้ากับทรัพย์</div>
+    <p class="field-hint" style="margin-bottom:12px;">ระบบคำนวณคะแนนความตรงจากประเภท / ทำเล / งบประมาณ เรียงให้จากคู่ที่น่าติดต่อที่สุด</p>
+    <div id="matches-container"></div>
+  </section>
+
+  <!-- DATA -->
+  <section id="view-data" class="view">
+    <div class="section-title">ข้อมูล & สำรองข้อมูล</div>
+    <div class="card">
+      <h3>สำรอง/ย้ายข้อมูล</h3>
+      <p class="field-hint">ข้อมูลทั้งหมดเก็บไว้ในเบราว์เซอร์นี้เท่านั้น (localStorage) แนะนำให้ Export เก็บไว้เป็นระยะ</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="exportData()">⬇️ Export เป็นไฟล์ JSON</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">⬆️ Import จากไฟล์ JSON</button>
+        <input type="file" id="import-file" accept="application/json" class="hidden" onchange="importData(event)">
+      </div>
+    </div>
+    <div class="card">
+      <h3>ล้างข้อมูลทั้งหมด</h3>
+      <p class="field-hint">ลบทรัพย์และลูกค้าทั้งหมดออกจากเบราว์เซอร์นี้ (แนะนำให้ Export ก่อน)</p>
+      <button class="btn btn-danger" onclick="clearAllData()">ลบข้อมูลทั้งหมด</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="tabs">
+  <button class="active" data-view="dashboard" onclick="switchView('dashboard')"><span class="ic">📊</span>แดชบอร์ด</button>
+  <button data-view="listings" onclick="switchView('listings')"><span class="ic">🏡</span>ทรัพย์</button>
+  <button data-view="leads" onclick="switchView('leads')"><span class="ic">🧑‍🤝‍🧑</span>ลูกค้า</button>
+  <button data-view="matches" onclick="switchView('matches')"><span class="ic">🔗</span>จับคู่</button>
+  <button data-view="data" onclick="switchView('data')"><span class="ic">💾</span>ข้อมูล</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---------- storage ---------- */
+const LS_LISTINGS = 'rlm_listings_v1';
+const LS_LEADS = 'rlm_leads_v1';
+
+const DISTRICTS = {
+  'เชียงใหม่': ['เมืองเชียงใหม่','แม่ริม','สันทราย','หางดง','สารภี','สันกำแพง','ดอยสะเก็ด','สันป่าตอง','จอมทอง','ฝาง','แม่แตง','สะเมิง','แม่ออน','ดอยหล่อ','แม่วาง','สันติสุข','พร้าว','เชียงดาว','ไชยปราการ','เวียงแหง','อมก๋อย','ฮอด','ดอยเต่า','แม่อาย','กัลยาณิวัฒนา'],
+  'ลำพูน': ['เมืองลำพูน','ป่าซาง','บ้านโฮ่ง','ลี้','ทุ่งหัวช้าง','แม่ทา','บ้านธิ','เวียงหนองล่อง'],
+  'ลำปาง': ['เมืองลำปาง','เกาะคา','แม่ทะ','สบปราบ','ห้างฉัตร','งาว','แจ้ห่ม','วังเหนือ','เถิน','แม่พริก','เสริมงาม','เมืองปาน','แม่เมาะ']
+};
+
+function loadListings(){ try{ return JSON.parse(localStorage.getItem(LS_LISTINGS))||[]; }catch(e){ return []; } }
+function saveListings(arr){ localStorage.setItem(LS_LISTINGS, JSON.stringify(arr)); }
+function loadLeads(){ try{ return JSON.parse(localStorage.getItem(LS_LEADS))||[]; }catch(e){ return []; } }
+function saveLeads(arr){ localStorage.setItem(LS_LEADS, JSON.stringify(arr)); }
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmtBaht(n){ if(n===undefined||n===null||n==='') return '-'; return Number(n).toLocaleString('th-TH')+' บาท'; }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------- navigation ---------- */
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  if(name==='dashboard') renderDashboard();
+  if(name==='listings') renderListings();
+  if(name==='leads') renderLeads();
+  if(name==='matches') renderMatches();
+}
+
+function toggleForm(id, forceHide){
+  const el = document.getElementById(id);
+  if(forceHide){ el.classList.add('hidden'); resetForm(id); return; }
+  el.classList.toggle('hidden');
+  if(!el.classList.contains('hidden') && id==='listing-form'){ refreshDistrictOptions('l-district','l-province'); }
+  if(!el.classList.contains('hidden') && id==='lead-form'){ refreshLeadDistrictOptions(); }
+}
+
+function resetForm(id){
+  if(id==='listing-form'){
+    ['l-id','l-title','l-price','l-sqm','l-bed','l-bath','l-rai','l-ngan','l-wa','l-desc','l-contact','l-district'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('l-type').value='บ้าน';
+    document.getElementById('l-status').value='available';
+    document.getElementById('l-province').value='เชียงใหม่';
+    document.getElementById('listing-form-title').textContent='เพิ่มทรัพย์ใหม่';
+    onListingTypeChange();
+  }
+  if(id==='lead-form'){
+    ['d-id','d-rawtext','d-name','d-contact','d-districts','d-budget-min','d-budget-max','d-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('d-source').value='Facebook';
+    document.getElementById('d-status').value='new';
+    Array.from(document.getElementById('d-types').options).forEach(o=>o.selected=false);
+    Array.from(document.getElementById('d-provinces').options).forEach(o=>o.selected=false);
+    document.getElementById('d-parsed-preview').classList.add('hidden');
+    document.getElementById('lead-form-title').textContent='เพิ่มลูกค้าใหม่';
+  }
+}
+
+function refreshDistrictOptions(inputId, provinceSelectId){
+  const province = document.getElementById(provinceSelectId).value;
+  const dl = document.getElementById('district-list-l');
+  dl.innerHTML = '';
+  (DISTRICTS[province]||[]).forEach(d=>{
+    const opt = document.createElement('option'); opt.value = d; dl.appendChild(opt);
+  });
+}
+
+function refreshLeadDistrictOptions(){
+  const provinces = Array.from(document.getElementById('d-provinces').selectedOptions).map(o=>o.value);
+  const dl = document.getElementById('district-list-d');
+  dl.innerHTML = '';
+  let all = [];
+  (provinces.length? provinces : Object.keys(DISTRICTS)).forEach(p=>{ all = all.concat(DISTRICTS[p]||[]); });
+  all.forEach(d=>{ const opt = document.createElement('option'); opt.value = d; dl.appendChild(opt); });
+}
+
+function onListingTypeChange(){
+  const type = document.getElementById('l-type').value;
+  document.getElementById('l-house-fields').classList.toggle('hidden', type==='ที่ดิน');
+  document.getElementById('l-land-fields').classList.toggle('hidden', type!=='ที่ดิน');
+}
+
+/* ---------- listings CRUD ---------- */
+function saveListing(){
+  const id = document.getElementById('l-id').value || uid();
+  const title = document.getElementById('l-title').value.trim();
+  if(!title){ toast('กรุณาใส่ชื่อรายการ'); return; }
+  const listing = {
+    id,
+    title,
+    type: document.getElementById('l-type').value,
+    status: document.getElementById('l-status').value,
+    province: document.getElementById('l-province').value,
+    district: document.getElementById('l-district').value.trim(),
+    price: Number(document.getElementById('l-price').value)||0,
+    sqm: Number(document.getElementById('l-sqm').value)||null,
+    bedrooms: Number(document.getElementById('l-bed').value)||null,
+    bathrooms: Number(document.getElementById('l-bath').value)||null,
+    rai: Number(document.getElementById('l-rai').value)||null,
+    ngan: Number(document.getElementById('l-ngan').value)||null,
+    wa: Number(document.getElementById('l-wa').value)||null,
+    docType: document.getElementById('l-doctype').value,
+    description: document.getElementById('l-desc').value.trim(),
+    contact: document.getElementById('l-contact').value.trim(),
+    createdAt: Date.now()
+  };
+  let arr = loadListings();
+  const idx = arr.findIndex(x=>x.id===id);
+  if(idx>=0){ listing.createdAt = arr[idx].createdAt; arr[idx]=listing; } else { arr.push(listing); }
+  saveListings(arr);
+  toggleForm('listing-form', true);
+  renderListings();
+  toast('บันทึกทรัพย์แล้ว');
+}
+
+function editListing(id){
+  const l = loadListings().find(x=>x.id===id);
+  if(!l) return;
+  document.getElementById('listing-form').classList.remove('hidden');
+  document.getElementById('listing-form-title').textContent='แก้ไขทรัพย์';
+  document.getElementById('l-id').value=l.id;
+  document.getElementById('l-title').value=l.title;
+  document.getElementById('l-type').value=l.type;
+  document.getElementById('l-status').value=l.status;
+  document.getElementById('l-province').value=l.province;
+  refreshDistrictOptions('l-district','l-province');
+  document.getElementById('l-district').value=l.district||'';
+  document.getElementById('l-price').value=l.price||'';
+  document.getElementById('l-sqm').value=l.sqm||'';
+  document.getElementById('l-bed').value=l.bedrooms||'';
+  document.getElementById('l-bath').value=l.bathrooms||'';
+  document.getElementById('l-rai').value=l.rai||'';
+  document.getElementById('l-ngan').value=l.ngan||'';
+  document.getElementById('l-wa').value=l.wa||'';
+  document.getElementById('l-doctype').value=l.docType||'โฉนด';
+  document.getElementById('l-desc').value=l.description||'';
+  document.getElementById('l-contact').value=l.contact||'';
+  onListingTypeChange();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteListing(id){
+  if(!confirm('ลบทรัพย์นี้ออกจากระบบ?')) return;
+  saveListings(loadListings().filter(x=>x.id!==id));
+  renderListings();
+  toast('ลบแล้ว');
+}
+
+function listingSizeText(l){
+  if(l.type==='ที่ดิน'){
+    const parts=[];
+    if(l.rai) parts.push(l.rai+' ไร่');
+    if(l.ngan) parts.push(l.ngan+' งาน');
+    if(l.wa) parts.push(l.wa+' ตร.วา');
+    return parts.length? parts.join(' ') : '-';
+  }
+  const parts=[];
+  if(l.sqm) parts.push(l.sqm+' ตร.ม.');
+  if(l.bedrooms) parts.push(l.bedrooms+' นอน');
+  if(l.bathrooms) parts.push(l.bathrooms+' น้ำ');
+  return parts.length? parts.join(' | ') : '-';
+}
+
+function renderListings(){
+  const filter = document.getElementById('listing-filter-status').value;
+  const arr = loadListings().filter(l=> !filter || l.status===filter).sort((a,b)=>b.createdAt-a.createdAt);
+  const c = document.getElementById('listings-container');
+  if(arr.length===0){ c.innerHTML = '<div class="empty">ยังไม่มีทรัพย์ในระบบ กด "+ เพิ่มทรัพย์ใหม่" เพื่อเริ่มต้น</div>'; return; }
+  c.innerHTML = arr.map(l=>`
+    <div class="list-item">
+      <div class="top">
+        <div>
+          <span class="title">${esc(l.title)}</span>
+          <span class="badge badge-${l.status}">${statusLabelListing(l.status)}</span>
+        </div>
+      </div>
+      <div class="meta">
+        ${l.type} · ${esc(l.district||'-')}, ${l.province} · ${fmtBaht(l.price)}<br>
+        ${listingSizeText(l)}
+        ${l.description? '<br>'+esc(l.description) : ''}
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-small" onclick="editListing('${l.id}')">แก้ไข</button>
+        <button class="btn btn-danger btn-small" onclick="deleteListing('${l.id}')">ลบ</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function statusLabelListing(s){
+  return {available:'ว่าง/พร้อมขาย', reserved:'มีคนจอง', sold:'ขายแล้ว'}[s]||s;
+}
+
+/* ---------- lead text parser ---------- */
+function parseLeadText(text){
+  const result = { propertyTypes: [], provinces: [], districts: [], budgetMin: null, budgetMax: null };
+  if(!text) return result;
+
+  const typeMap = [
+    ['ที่ดิน','ที่ดิน'], ['ที่นา','ที่ดิน'], ['แปลงที่ดิน','ที่ดิน'],
+    ['ทาวน์โฮม','ทาวน์โฮม'], ['ทาวน์เฮาส์','ทาวน์โฮม'],
+    ['คอนโด','คอนโด'],
+    ['บ้านเดี่ยว','บ้าน'], ['บ้าน','บ้าน']
+  ];
+  typeMap.forEach(([kw,label])=>{
+    if(text.includes(kw) && !result.propertyTypes.includes(label)) result.propertyTypes.push(label);
+  });
+
+  Object.keys(DISTRICTS).forEach(prov=>{
+    if(text.includes(prov)) result.provinces.push(prov);
+  });
+  const searchProvinces = result.provinces.length? result.provinces : Object.keys(DISTRICTS);
+  searchProvinces.forEach(prov=>{
+    (DISTRICTS[prov]||[]).forEach(d=>{
+      const short = d.replace(/^(เมือง)/,'');
+      if((text.includes(d) || (short.length>1 && text.includes(short))) && !result.districts.includes(d)){
+        result.districts.push(d);
+      }
+    });
+  });
+
+  const rangeMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:-|–|ถึง|~)\s*(\d+(?:\.\d+)?)\s*ล้าน/);
+  const maxOnlyMatch = text.match(/ไม่เกิน\s*(\d+(?:\.\d+)?)\s*ล้าน/);
+  const aroundMatch = text.match(/(?:งบ(?:ประมาณ)?|ราคา)\s*(?:ประมาณ\s*)?(\d+(?:\.\d+)?)\s*ล้าน/);
+  const bahtMatch = text.match(/([\d,]{5,})\s*บาท/);
+
+  if(rangeMatch){
+    result.budgetMin = Math.round(parseFloat(rangeMatch[1])*1e6);
+    result.budgetMax = Math.round(parseFloat(rangeMatch[2])*1e6);
+  } else if(maxOnlyMatch){
+    result.budgetMin = 0;
+    result.budgetMax = Math.round(parseFloat(maxOnlyMatch[1])*1e6);
+  } else if(aroundMatch){
+    const v = parseFloat(aroundMatch[1])*1e6;
+    result.budgetMin = Math.round(v*0.85);
+    result.budgetMax = Math.round(v*1.15);
+  } else if(bahtMatch){
+    const v = Number(bahtMatch[1].replace(/,/g,''));
+    result.budgetMin = Math.round(v*0.9);
+    result.budgetMax = Math.round(v*1.1);
+  }
+
+  return result;
+}
+
+function autoParseLead(){
+  const text = document.getElementById('d-rawtext').value;
+  const p = parseLeadText(text);
+  const preview = document.getElementById('d-parsed-preview');
+  if(!text.trim()){ preview.classList.add('hidden'); return; }
+  preview.classList.remove('hidden');
+  preview.innerHTML = `
+    <b>ระบบแยกความต้องการได้:</b><br>
+    ประเภท: ${p.propertyTypes.length? p.propertyTypes.join(', ') : 'ไม่พบ (โปรดเลือกเอง)'}<br>
+    จังหวัด: ${p.provinces.length? p.provinces.join(', ') : 'ไม่พบ (โปรดเลือกเอง)'}<br>
+    อำเภอ: ${p.districts.length? p.districts.join(', ') : '-'}<br>
+    งบประมาณ: ${(p.budgetMin!==null)? fmtBaht(p.budgetMin)+' - '+fmtBaht(p.budgetMax) : 'ไม่พบ (โปรดกรอกเอง)'}<br>
+    <i>* ตรวจสอบและแก้ไขในฟอร์มด้านล่างก่อนบันทึก</i>
+  `;
+  // auto-fill the actual form fields so the user can review/adjust
+  Array.from(document.getElementById('d-types').options).forEach(o=>o.selected = p.propertyTypes.includes(o.value));
+  Array.from(document.getElementById('d-provinces').options).forEach(o=>o.selected = p.provinces.includes(o.value));
+  refreshLeadDistrictOptions();
+  if(p.districts.length) document.getElementById('d-districts').value = p.districts.join(', ');
+  if(p.budgetMin!==null){
+    document.getElementById('d-budget-min').value = p.budgetMin;
+    document.getElementById('d-budget-max').value = p.budgetMax;
+  }
+}
+
+/* ---------- leads CRUD ---------- */
+function saveLead(){
+  const id = document.getElementById('d-id').value || uid();
+  const name = document.getElementById('d-name').value.trim();
+  if(!name){ toast('กรุณาใส่ชื่อลูกค้า'); return; }
+  const lead = {
+    id,
+    name,
+    contact: document.getElementById('d-contact').value.trim(),
+    source: document.getElementById('d-source').value,
+    rawText: document.getElementById('d-rawtext').value.trim(),
+    propertyTypes: Array.from(document.getElementById('d-types').selectedOptions).map(o=>o.value),
+    provinces: Array.from(document.getElementById('d-provinces').selectedOptions).map(o=>o.value),
+    districts: document.getElementById('d-districts').value.split(',').map(s=>s.trim()).filter(Boolean),
+    budgetMin: document.getElementById('d-budget-min').value!==''? Number(document.getElementById('d-budget-min').value): null,
+    budgetMax: document.getElementById('d-budget-max').value!==''? Number(document.getElementById('d-budget-max').value): null,
+    status: document.getElementById('d-status').value,
+    notes: document.getElementById('d-notes').value.trim(),
+    createdAt: Date.now()
+  };
+  let arr = loadLeads();
+  const idx = arr.findIndex(x=>x.id===id);
+  if(idx>=0){ lead.createdAt = arr[idx].createdAt; arr[idx]=lead; } else { arr.push(lead); }
+  saveLeads(arr);
+  toggleForm('lead-form', true);
+  renderLeads();
+  toast('บันทึกลูกค้าแล้ว');
+}
+
+function editLead(id){
+  const d = loadLeads().find(x=>x.id===id);
+  if(!d) return;
+  document.getElementById('lead-form').classList.remove('hidden');
+  document.getElementById('lead-form-title').textContent='แก้ไขลูกค้า';
+  document.getElementById('d-id').value=d.id;
+  document.getElementById('d-rawtext').value=d.rawText||'';
+  document.getElementById('d-name').value=d.name;
+  document.getElementById('d-contact').value=d.contact||'';
+  document.getElementById('d-source').value=d.source||'Facebook';
+  Array.from(document.getElementById('d-types').options).forEach(o=>o.selected=(d.propertyTypes||[]).includes(o.value));
+  Array.from(document.getElementById('d-provinces').options).forEach(o=>o.selected=(d.provinces||[]).includes(o.value));
+  refreshLeadDistrictOptions();
+  document.getElementById('d-districts').value=(d.districts||[]).join(', ');
+  document.getElementById('d-budget-min').value=d.budgetMin ?? '';
+  document.getElementById('d-budget-max').value=d.budgetMax ?? '';
+  document.getElementById('d-status').value=d.status||'new';
+  document.getElementById('d-notes').value=d.notes||'';
+  document.getElementById('d-parsed-preview').classList.add('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteLead(id){
+  if(!confirm('ลบลูกค้ารายนี้ออกจากระบบ?')) return;
+  saveLeads(loadLeads().filter(x=>x.id!==id));
+  renderLeads();
+  toast('ลบแล้ว');
+}
+
+function renderLeads(){
+  const filter = document.getElementById('lead-filter-status').value;
+  const arr = loadLeads().filter(d=> !filter || d.status===filter).sort((a,b)=>b.createdAt-a.createdAt);
+  const c = document.getElementById('leads-container');
+  if(arr.length===0){ c.innerHTML = '<div class="empty">ยังไม่มีลูกค้าในระบบ กด "+ เพิ่มลูกค้าใหม่" แล้ววางข้อความจาก Social ได้เลย</div>'; return; }
+  c.innerHTML = arr.map(d=>`
+    <div class="list-item">
+      <div class="top">
+        <div>
+          <span class="title">${esc(d.name)}</span>
+          <span class="badge badge-${d.status}">${statusLabelLead(d.status)}</span>
+        </div>
+      </div>
+      <div class="meta">
+        พบจาก ${d.source} ${d.contact? '· '+esc(d.contact):''}<br>
+        ${(d.propertyTypes||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+        ${(d.provinces||[]).map(p=>`<span class="tag">${p}</span>`).join('')}
+        ${(d.budgetMin||d.budgetMax)? '<br>งบ '+fmtBaht(d.budgetMin)+' - '+fmtBaht(d.budgetMax) : ''}
+        ${d.notes? '<br>'+esc(d.notes) : ''}
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-small" onclick="editLead('${d.id}')">แก้ไข</button>
+        <button class="btn btn-danger btn-small" onclick="deleteLead('${d.id}')">ลบ</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function statusLabelLead(s){
+  return {new:'ลีดใหม่', contacted:'ติดต่อแล้ว', interested:'สนใจ/นัดชม', closed:'ปิดการขายแล้ว', lost:'ไม่สนใจแล้ว'}[s]||s;
+}
+
+/* ---------- matching engine ---------- */
+function computeMatch(lead, listing){
+  let score = 0; const reasons = [];
+  if(!lead.propertyTypes || lead.propertyTypes.length===0){ score += 10; }
+  else if(lead.propertyTypes.includes(listing.type)){ score += 35; reasons.push('ประเภทตรง'); }
+
+  if(!lead.provinces || lead.provinces.length===0){ score += 5; }
+  else if(lead.provinces.includes(listing.province)){
+    score += 25; reasons.push('จังหวัดตรง');
+    if(lead.districts && lead.districts.length && listing.district && lead.districts.includes(listing.district)){
+      score += 15; reasons.push('อำเภอตรง');
+    }
+  }
+
+  if(lead.budgetMin==null && lead.budgetMax==null){ score += 10; }
+  else if(listing.price>0){
+    const min = lead.budgetMin ?? 0;
+    const max = lead.budgetMax ?? Infinity;
+    if(listing.price >= min*0.85 && listing.price <= max*1.1){ score += 25; reasons.push('งบตรง'); }
+    else if(listing.price >= min*0.6 && listing.price <= max*1.4){ score += 10; reasons.push('งบใกล้เคียง'); }
+  }
+
+  return { score: Math.min(100, score), reasons };
+}
+
+function getTopMatchesForLead(lead, listings, limit=3){
+  return listings
+    .filter(l=>l.status==='available')
+    .map(l=>({ listing:l, ...computeMatch(lead,l) }))
+    .filter(m=>m.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,limit);
+}
+
+function scoreClass(score){
+  if(score>=65) return 'score-high';
+  if(score>=40) return 'score-mid';
+  return 'score-low';
+}
+
+function renderMatches(){
+  const leads = loadLeads().filter(d=>d.status!=='closed' && d.status!=='lost').sort((a,b)=>b.createdAt-a.createdAt);
+  const listings = loadListings();
+  const c = document.getElementById('matches-container');
+  if(leads.length===0){ c.innerHTML = '<div class="empty">ยังไม่มีลูกค้าที่ต้องจับคู่ (ลูกค้าที่ปิดการขาย/ไม่สนใจแล้วจะไม่แสดงในนี้)</div>'; return; }
+  if(listings.filter(l=>l.status==='available').length===0){ c.innerHTML = '<div class="empty">ยังไม่มีทรัพย์ที่พร้อมขาย ลองเพิ่มทรัพย์ในแท็บ "ทรัพย์" ก่อน</div>'; return; }
+
+  c.innerHTML = leads.map(lead=>{
+    const matches = getTopMatchesForLead(lead, listings);
+    if(matches.length===0){
+      return `<div class="match-block"><div class="lead-head"><b>${esc(lead.name)}</b><span class="badge badge-${lead.status}">${statusLabelLead(lead.status)}</span></div><div class="empty">ยังไม่มีทรัพย์ที่ตรงกับความต้องการของลูกค้ารายนี้</div></div>`;
+    }
+    return `
+      <div class="match-block">
+        <div class="lead-head">
+          <b>${esc(lead.name)}</b>
+          <span class="badge badge-${lead.status}">${statusLabelLead(lead.status)}</span>
+        </div>
+        ${matches.map(m=>`
+          <div class="match-row">
+            <div class="score ${scoreClass(m.score)}">${m.score}</div>
+            <div class="info">
+              <div class="t">${esc(m.listing.title)}</div>
+              <div class="m">${m.listing.type} · ${esc(m.listing.district||'-')}, ${m.listing.province} · ${fmtBaht(m.listing.price)}</div>
+              <div class="m">${m.reasons.join(' · ')||'จับคู่พื้นฐาน'}</div>
+            </div>
+          </div>
+        `).join('')}
+        <button class="btn btn-secondary btn-small" onclick="copyPitch('${lead.id}')">📋 คัดลอกข้อความนำเสนอ</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function copyPitch(leadId){
+  const lead = loadLeads().find(x=>x.id===leadId);
+  if(!lead) return;
+  const listings = loadListings();
+  const matches = getTopMatchesForLead(lead, listings, 3);
+  if(matches.length===0){ toast('ยังไม่มีทรัพย์ที่ตรงกับลูกค้ารายนี้'); return; }
+  let msg = `สวัสดีครับ/ค่ะ คุณ${lead.name}\nตามที่สนใจ${(lead.propertyTypes||[]).join('/')||'อสังหาริมทรัพย์'}${lead.provinces&&lead.provinces.length? 'ใน'+lead.provinces.join('/'):''} ขอนำเสนอรายการที่น่าจะตรงใจดังนี้ครับ/ค่ะ\n\n`;
+  matches.forEach((m,i)=>{
+    const l = m.listing;
+    msg += `${i+1}. ${l.title}\n   ${l.type} · ${l.district||'-'}, ${l.province}\n   ราคา ${fmtBaht(l.price)} · ${listingSizeText(l)}\n${l.description? '   '+l.description+'\n':''}${l.contact? '   ติดต่อ: '+l.contact+'\n':''}\n`;
+  });
+  msg += 'สนใจนัดชมสถานที่จริงหรือสอบถามเพิ่มเติมได้เลยนะครับ/คะ 😊';
+
+  navigator.clipboard?.writeText(msg).then(()=>{
+    toast('คัดลอกข้อความนำเสนอแล้ว วางส่งให้ลูกค้าได้เลย');
+  }).catch(()=>{
+    prompt('คัดลอกข้อความด้านล่าง:', msg);
+  });
+}
+
+/* ---------- dashboard ---------- */
+function renderDashboard(){
+  const listings = loadListings();
+  const leads = loadLeads();
+  document.getElementById('stat-listings').textContent = listings.length;
+  document.getElementById('stat-available').textContent = listings.filter(l=>l.status==='available').length;
+  document.getElementById('stat-leads').textContent = leads.length;
+  document.getElementById('stat-newleads').textContent = leads.filter(d=>d.status==='new').length;
+
+  const activeLeads = leads.filter(d=>d.status!=='closed' && d.status!=='lost');
+  let all = [];
+  activeLeads.forEach(lead=>{
+    getTopMatchesForLead(lead, listings, 1).forEach(m=>{
+      all.push({ lead, ...m });
+    });
+  });
+  all.sort((a,b)=>b.score-a.score);
+  all = all.slice(0,5);
+
+  const box = document.getElementById('dashboard-top-matches');
+  if(all.length===0){ box.innerHTML = '<div class="empty">ยังไม่มีข้อมูลพอสำหรับแนะนำ ลองเพิ่มทรัพย์และลูกค้าก่อน</div>'; return; }
+  box.innerHTML = all.map(m=>`
+    <div class="match-row">
+      <div class="score ${scoreClass(m.score)}">${m.score}</div>
+      <div class="info">
+        <div class="t">${esc(m.lead.name)} ↔ ${esc(m.listing.title)}</div>
+        <div class="m">${m.listing.type} · ${esc(m.listing.district||'-')}, ${m.listing.province} · ${fmtBaht(m.listing.price)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---------- data export/import ---------- */
+function exportData(){
+  const data = { listings: loadListings(), leads: loadLeads(), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'realestate-lead-matcher-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export แล้ว');
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!confirm('การ Import จะแทนที่ข้อมูลทั้งหมดที่มีอยู่ในเบราว์เซอร์นี้ ยืนยันหรือไม่?')) return;
+      saveListings(data.listings||[]);
+      saveLeads(data.leads||[]);
+      toast('Import สำเร็จ');
+      switchView('dashboard');
+    }catch(err){
+      toast('ไฟล์ไม่ถูกต้อง');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAllData(){
+  if(!confirm('ยืนยันลบข้อมูลทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้')) return;
+  localStorage.removeItem(LS_LISTINGS);
+  localStorage.removeItem(LS_LEADS);
+  toast('ลบข้อมูลทั้งหมดแล้ว');
+  switchView('dashboard');
+}
+
+/* ---------- util ---------- */
+function esc(s){
+  if(s===undefined||s===null) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- init ---------- */
+onListingTypeChange();
+renderDashboard();
+</script>
+</body>
+</html>
